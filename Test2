@@ -135,7 +135,6 @@ sub_tabs_map = {
         "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
     },
     "Check Mgmt.": {
-        "Active": ("showList('Active', 'CheckManagement');", (By.ID, "content")),
         "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
         "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
     },
