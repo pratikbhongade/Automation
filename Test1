@@ -26,6 +26,7 @@ def check_tab(tab_element, tab_name, content_locator):
 def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
     try:
         time.sleep(5)  # Wait for 5 seconds before clicking the sub-tab
+        print(f"Executing JavaScript for sub-tab '{sub_tab_name}': {sub_tab_js}")
         driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located(content_locator)
@@ -38,6 +39,7 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
 
 # Navigate to the webpage containing the tabs
 driver.get('https://itintranet1.keybank.com/fpa/Login')  # Replace with your actual URL
+print(f"Opened URL: {driver.current_url}")
 
 # Main tab elements and their corresponding content locators
 main_tabs = {
@@ -69,6 +71,7 @@ all_tabs_opened = True
 for tab_name, (tab_href, content_locator) in main_tabs.items():
     try:
         # Find the main tab element using its href attribute
+        print(f"Attempting to click main tab: {tab_name}")
         tab_element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
         )
