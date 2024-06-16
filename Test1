@@ -50,9 +50,9 @@ main_tabs = {
 
 # Sub-tabs under the "Users" tab and their corresponding content locators
 user_sub_tabs = {
-    "Active": ("javascript:showList('Active', 'Usr');", (By.CSS_SELECTOR, "table.ListView")),
-    "Not Active": ("javascript:showListNew('InActive', 'Usr');", (By.CSS_SELECTOR, "table.ListView")),
-    "All": ("javascript:showListNew('All', 'Usr');", (By.CSS_SELECTOR, "table.ListView")),
+    "Active": ("javascript:showList('Active', 'Usr');", (By.ID, "content")),
+    "Not Active": ("javascript:showListNew('InActive', 'Usr');", (By.ID, "content")),
+    "All": ("javascript:showListNew('All', 'Usr');", (By.ID, "content")),
 }
 
 all_tabs_opened = True
@@ -69,13 +69,11 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
             all_tabs_opened = False
         # If the Users tab is successfully opened, check the sub-tabs
         if tab_name == "Users" and success:
-            for sub_tab_name, (sub_tab_href, sub_content_locator) in user_sub_tabs.items():
+            for sub_tab_name, (sub_tab_js, sub_content_locator) in user_sub_tabs.items():
                 try:
-                    # Find the sub-tab element using its href attribute
-                    sub_tab_element = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.XPATH, f"//a[@href=\"{sub_tab_href}\"]"))
-                    )
-                    sub_success = check_sub_tab(sub_tab_element, sub_tab_name, sub_content_locator)
+                    # Execute the JavaScript function for the sub-tab
+                    driver.execute_script(sub_tab_js)
+                    sub_success = check_sub_tab(driver.find_element(By.XPATH, f"//a[@href='{sub_tab_js}']"), sub_tab_name, sub_content_locator)
                     if not sub_success:
                         all_tabs_opened = False
                 except (TimeoutException, NoSuchElementException) as e:
