@@ -8,9 +8,14 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 # Initialize Edge WebDriver
 driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
 
+# Function to highlight an element
+def highlight(element):
+    driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, "background: yellow; border: 2px solid red;")
+
 # Function to check if a tab opens properly
 def check_tab(tab_element, tab_name, content_locator):
     try:
+        highlight(tab_element)
         time.sleep(1)  # Wait for 1 second before clicking the tab
         tab_element.click()
         WebDriverWait(driver, 3).until(
@@ -25,7 +30,7 @@ def check_tab(tab_element, tab_name, content_locator):
 # Function to check if a sub-tab opens properly by executing JavaScript
 def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
     try:
-        time.sleep(1)  # Wait for 1 second before clicking the sub-tab
+        time.sleep(1)  # Wait for 1 second before executing the sub-tab JavaScript
         driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
         WebDriverWait(driver, 3).until(
             EC.visibility_of_element_located(content_locator)
@@ -50,6 +55,7 @@ def validate_first_list_element_and_cancel(column_index):
         first_element = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a"))
         )
+        highlight(first_element)
         time.sleep(1)  # Wait for 1 second before clicking the first element
         first_element.click()
         # Validate that the element opens properly
@@ -64,6 +70,7 @@ def validate_first_list_element_and_cancel(column_index):
         cancel_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
         )
+        highlight(cancel_button)
         time.sleep(1)  # Wait for 1 second before clicking the cancel button
         cancel_button.click()
         
@@ -79,6 +86,7 @@ def handle_search_sub_tab():
         search_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_search_bluebrdr.jpg']"))
         )
+        highlight(search_button)
         time.sleep(1)  # Wait for 1 second before clicking the Search button
         search_button.click()
         print("Search button clicked successfully.")
@@ -182,6 +190,7 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
         tab_element = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
         )
+        highlight(tab_element)
         time.sleep(1)  # Wait for 1 second before clicking the main tab
         success = check_tab(tab_element, tab_name, content_locator)
         if success:
