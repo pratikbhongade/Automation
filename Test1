@@ -5,8 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Initialize Edge WebDriver
-driver_path = "path_to_edge_webdriver"  # Replace with the actual path if not in system PATH
-driver = webdriver.Edge(executable_path=driver_path)
+driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
 
 # Function to check if a tab opens properly
 def check_tab(tab_element, tab_name, content_locator):
@@ -24,9 +23,9 @@ driver.get('https://your-website-url.com')  # Replace with your actual URL
 
 # Example tab elements and their corresponding content locators
 tabs = {
-    "Users": ("/fpa/Usr", (By.XPATH, "//div[contains(text(), 'User Content')]")),
-    "User Roles": ("/fpa/UsrRoles", (By.XPATH, "//div[contains(text(), 'User Roles Content')]")),
-    "Accounts": ("/fpa/Acct", (By.XPATH, "//div[contains(text(), 'Accounts Content')]")),
+    "Users": ("/fpa/Usr", (By.XPATH, "//div[contains(text(), 'User List')]")),  # Adjust this locator
+    "User Roles": ("/fpa/UsrRoles", (By.XPATH, "//div[contains(text(), 'User Roles List')]")),  # Adjust this locator
+    "Accounts": ("/fpa/Acct", (By.XPATH, "//div[contains(text(), 'Account Details')]")),  # Adjust this locator
 }
 
 for tab_name, (tab_href, content_locator) in tabs.items():
