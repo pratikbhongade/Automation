@@ -1,0 +1,42 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+
+# Initialize WebDriver
+driver = webdriver.Chrome()  # Ensure ChromeDriver is in your PATH
+
+# Function to check if a tab opens properly
+def check_tab(tab_element, tab_name):
+    try:
+        tab_element.click()
+        WebDriverWait(driver, 10).until(
+            EC.url_contains(tab_name.lower())
+        )
+        print(f"Tab '{tab_name}' opened successfully.")
+    except TimeoutException:
+        print(f"Failed to open tab '{tab_name}'.")
+
+# Navigate to the webpage containing the tabs
+driver.get('https://your-website-url.com')  # Replace with your actual URL
+
+# Example tab elements and their corresponding href links
+tabs = {
+    "Users": "/fpa/Usr",
+    "User Roles": "/fpa/UsrRoles",
+    "Accounts": "/fpa/Acct",
+}
+
+for tab_name, tab_href in tabs.items():
+    try:
+        # Find the tab element using its href attribute
+        tab_element = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
+        )
+        check_tab(tab_element, tab_name)
+    except (TimeoutException, NoSuchElementException) as e:
+        print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
+
+# Close the browser
+driver.quit()
