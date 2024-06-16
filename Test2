@@ -42,17 +42,18 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
         print(driver.execute_script("return window.onerror"))
         return False
 
-# Function to validate the first list element under "Name" column and click the cancel button
-def validate_first_list_element_and_cancel():
+# Function to validate the first list element under the specified column and click the cancel button
+def validate_first_list_element_and_cancel(column_index):
     try:
         # Wait for the table to be visible
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView"))
         )
-        # Find the first element in the "Name" column
+        # Find the first element in the specified column
         first_element = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//table[@class='ListView']/tbody/tr[2]/td[2]/a"))
+            EC.element_to_be_clickable((By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a"))
         )
+        time.sleep(3)  # Wait for 3 seconds before clicking the first element
         first_element.click()
         # Validate that the element opens properly
         WebDriverWait(driver, 10).until(
@@ -67,6 +68,7 @@ def validate_first_list_element_and_cancel():
         cancel_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
         )
+        time.sleep(3)  # Wait for 3 seconds before clicking the cancel button
         cancel_button.click()
         print("Cancel button clicked successfully.")
         
@@ -130,18 +132,30 @@ sub_tabs_map = {
     },
 }
 
+# Map of specific columns to be clicked for each main tab
+column_indices = {
+    "Users": 2,  # 2nd column for Users
+    "User Roles": 2,  # 2nd column for User Roles
+    "Accounts": 2,  # 2nd column for Accounts
+    "GL/CC's": 3,  # 3rd column for GL/CC's
+    "Printers": 2,  # 2nd column for Printers
+    "Misc. Lookups": 2,  # 2nd column for Misc. Lookups
+    "Check Mgmt.": 4,  # 4th column for Check Mgmt.
+}
+
 all_tabs_opened = True
 
 # Function to handle sub-tabs based on main tab
 def handle_sub_tabs(tab_name, sub_tabs):
     global all_tabs_opened
+    column_index = column_indices[tab_name]
     for sub_tab_name, (sub_tab_js, sub_content_locator) in sub_tabs.items():
         sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
         if not sub_success:
             all_tabs_opened = False
         if sub_success:
             # Validate the first list element under each sub-tab and click the cancel button
-            first_list_element_success = validate_first_list_element_and_cancel()
+            first_list_element_success = validate_first_list_element_and_cancel(column_index)
             if not first_list_element_success:
                 all_tabs_opened = False
 
@@ -153,6 +167,7 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
         tab_element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
         )
+        time.sleep(3)  # Wait for 3 seconds before clicking the main tab
         success = check_tab(tab_element, tab_name, content_locator)
         if not success:
             all_tabs_opened = False
