@@ -1,0 +1,176 @@
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+
+# Initialize Edge WebDriver
+driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
+
+# Function to check if a tab opens properly
+def check_tab(tab_element, tab_name, content_locator):
+    try:
+        time.sleep(5)  # Wait for 5 seconds before clicking the tab
+        tab_element.click()
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(content_locator)
+        )
+        print(f"Tab '{tab_name}' opened successfully.")
+        return True
+    except TimeoutException:
+        print(f"Failed to open tab '{tab_name}'.")
+        return False
+
+# Function to check if a sub-tab opens properly by executing JavaScript
+def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
+    try:
+        time.sleep(5)  # Wait for 5 seconds before clicking the sub-tab
+        print(f"Executing JavaScript for sub-tab '{sub_tab_name}': {sub_tab_js}")
+        driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(content_locator)
+        )
+        print(f"Sub-tab '{sub_tab_name}' opened successfully.")
+        return True
+    except TimeoutException:
+        print(f"Failed to open sub-tab '{sub_tab_name}'.")
+        return False
+
+# Function to validate the first list element under "Name" column
+def validate_first_list_element():
+    try:
+        # Wait for the table to be visible
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView"))
+        )
+        # Find the first element in the "Name" column
+        first_element = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//table[@class='ListView']/tbody/tr[2]/td[2]/a"))
+        )
+        first_element.click()
+        # Validate that the element opens properly
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content"))  # Adjust the selector as needed
+        )
+        print("First list element opened successfully.")
+        return True
+    except (TimeoutException, NoSuchElementException) as e:
+        print(f"Failed to open the first list element. Exception: {e}")
+        return False
+
+# Navigate to the webpage containing the tabs
+driver.get('https://itintranet1.keybank.com/fpa/Login')  # Replace with your actual URL
+print(f"Opened URL: {driver.current_url}")
+
+# Main tab elements and their corresponding content locators
+main_tabs = {
+    "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
+    "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
+    "Accounts": ("/fpa/Acct", (By.CSS_SELECTOR, "table.ListView")),
+    "GL/CC's": ("/fpa/GlCstCntr", (By.CSS_SELECTOR, "table.ListView")),
+    "Printers": ("/fpa/Printer", (By.CSS_SELECTOR, "table.ListView")),
+    "Misc. Lookups": ("/fpa/AdminMiscLookup", (By.CSS_SELECTOR, "table.ListView")),
+    "Check Mgmt.": ("/fpa/CheckManagement", (By.CSS_SELECTOR, "table.ListView")),
+    "Archive": ("/fpa/Archive", (By.CSS_SELECTOR, "table.ListView")),
+}
+
+# Sub-tabs for different main tabs and their corresponding content locators
+users_sub_tabs = {
+    "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
+    "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
+}
+
+user_roles_sub_tabs = {
+    "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
+    "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
+}
+
+accounts_sub_tabs = {
+    "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
+    "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
+}
+
+glcc_sub_tabs = {
+    "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
+    "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
+}
+
+printers_sub_tabs = {
+    "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
+    "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
+}
+
+misc_lookups_sub_tabs = {
+    "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
+    "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
+}
+
+check_mgmt_sub_tabs = {
+    "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
+    "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
+}
+
+all_tabs_opened = True
+
+# Function to handle sub-tabs based on main tab
+def handle_sub_tabs(tab_name, sub_tabs):
+    global all_tabs_opened
+    for sub_tab_name, (sub_tab_js, sub_content_locator) in sub_tabs.items():
+        sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+        if not sub_success:
+            all_tabs_opened = False
+        if tab_name == "Users" and sub_tab_name == "Active" and sub_success:
+            # Validate the first list element under "Users - Active"
+            first_list_element_success = validate_first_list_element()
+            if not first_list_element_success:
+                all_tabs_opened = False
+
+# Check main tabs and their respective sub-tabs
+for tab_name, (tab_href, content_locator) in main_tabs.items():
+    try:
+        # Find the main tab element using its href attribute
+        print(f"Attempting to click main tab: {tab_name}")
+        tab_element = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
+        )
+        success = check_tab(tab_element, tab_name, content_locator)
+        if not success:
+            all_tabs_opened = False
+        else:
+            # Handle sub-tabs for each main tab
+            if tab_name == "Users":
+                handle_sub_tabs(tab_name, users_sub_tabs)
+            elif tab_name == "User Roles":
+                handle_sub_tabs(tab_name, user_roles_sub_tabs)
+            elif tab_name == "Accounts":
+                handle_sub_tabs(tab_name, accounts_sub_tabs)
+            elif tab_name == "GL/CC's":
+                handle_sub_tabs(tab_name, glcc_sub_tabs)
+            elif tab_name == "Printers":
+                handle_sub_tabs(tab_name, printers_sub_tabs)
+            elif tab_name == "Misc. Lookups":
+                handle_sub_tabs(tab_name, misc_lookups_sub_tabs)
+            elif tab_name == "Check Mgmt.":
+                handle_sub_tabs(tab_name, check_mgmt_sub_tabs)
+
+    except (TimeoutException, NoSuchElementException) as e:
+        print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
+        all_tabs_opened = False
+
+# Wait for 3 seconds before closing the browser
+time.sleep(3)
+# Close the browser
+driver.quit()
+
+# Print completion message if all tabs opened successfully
+if all_tabs_opened:
+    print("Validation completed.")
+else:
+    print("Validation failed.")
