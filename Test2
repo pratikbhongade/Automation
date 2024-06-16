@@ -38,10 +38,12 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
         return False
     except JavascriptException as e:
         print(f"JavaScript error on sub-tab '{sub_tab_name}': {e}")
+        # Adding more details for debugging
+        print(driver.execute_script("return window.onerror"))
         return False
 
-# Function to validate the first list element under "Name" column
-def validate_first_list_element():
+# Function to validate the first list element under "Name" column and click the cancel button
+def validate_first_list_element_and_cancel():
     try:
         # Wait for the table to be visible
         WebDriverWait(driver, 10).until(
@@ -57,9 +59,17 @@ def validate_first_list_element():
             EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content"))  # Adjust the selector as needed
         )
         print("First list element opened successfully.")
+        
+        # Find and click the cancel button
+        cancel_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+        )
+        cancel_button.click()
+        print("Cancel button clicked successfully.")
+        
         return True
     except (TimeoutException, NoSuchElementException) as e:
-        print(f"Failed to open the first list element. Exception: {e}")
+        print(f"Failed to open the first list element or click the cancel button. Exception: {e}")
         return False
 
 # Navigate to the webpage containing the tabs
@@ -130,8 +140,8 @@ def handle_sub_tabs(tab_name, sub_tabs):
         if not sub_success:
             all_tabs_opened = False
         if tab_name == "Users" and sub_tab_name == "Active" and sub_success:
-            # Validate the first list element under "Users - Active"
-            first_list_element_success = validate_first_list_element()
+            # Validate the first list element under "Users - Active" and click the cancel button
+            first_list_element_success = validate_first_list_element_and_cancel()
             if not first_list_element_success:
                 all_tabs_opened = False
 
