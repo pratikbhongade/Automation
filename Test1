@@ -22,11 +22,25 @@ def check_tab(tab_element, tab_name, content_locator):
         print(f"Failed to open tab '{tab_name}'.")
         return False
 
+# Function to check if a sub-tab opens properly
+def check_sub_tab(sub_tab_element, sub_tab_name, content_locator):
+    try:
+        time.sleep(5)  # Wait for 5 seconds before clicking the sub-tab
+        sub_tab_element.click()
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(content_locator)
+        )
+        print(f"Sub-tab '{sub_tab_name}' opened successfully.")
+        return True
+    except TimeoutException:
+        print(f"Failed to open sub-tab '{sub_tab_name}'.")
+        return False
+
 # Navigate to the webpage containing the tabs
 driver.get('https://your-website-url.com')  # Replace with your actual URL
 
-# Example tab elements and their corresponding content locators
-tabs = {
+# Main tab elements and their corresponding content locators
+main_tabs = {
     "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
     "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
     "Accounts": ("/fpa/Acct", (By.CSS_SELECTOR, "table.ListView")),
@@ -34,17 +48,39 @@ tabs = {
     "Printers": ("/fpa/Printer", (By.CSS_SELECTOR, "table.ListView")),
 }
 
+# Sub-tabs under the "Users" tab and their corresponding content locators
+user_sub_tabs = {
+    "Active": ("javascript:showList('Active', 'Usr');", (By.CSS_SELECTOR, "table.ListView")),
+    "Not Active": ("javascript:showListNew('InActive', 'Usr');", (By.CSS_SELECTOR, "table.ListView")),
+    "All": ("javascript:showListNew('All', 'Usr');", (By.CSS_SELECTOR, "table.ListView")),
+}
+
 all_tabs_opened = True
 
-for tab_name, (tab_href, content_locator) in tabs.items():
+# Check main tabs
+for tab_name, (tab_href, content_locator) in main_tabs.items():
     try:
-        # Find the tab element using its href attribute
+        # Find the main tab element using its href attribute
         tab_element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
         )
         success = check_tab(tab_element, tab_name, content_locator)
         if not success:
             all_tabs_opened = False
+        # If the Users tab is successfully opened, check the sub-tabs
+        if tab_name == "Users" and success:
+            for sub_tab_name, (sub_tab_href, sub_content_locator) in user_sub_tabs.items():
+                try:
+                    # Find the sub-tab element using its href attribute
+                    sub_tab_element = WebDriverWait(driver, 10).until(
+                        EC.element_to_be_clickable((By.XPATH, f"//a[@href=\"{sub_tab_href}\"]"))
+                    )
+                    sub_success = check_sub_tab(sub_tab_element, sub_tab_name, sub_content_locator)
+                    if not sub_success:
+                        all_tabs_opened = False
+                except (TimeoutException, NoSuchElementException) as e:
+                    print(f"Sub-tab '{sub_tab_name}' not found or not clickable. Exception: {e}")
+                    all_tabs_opened = False
     except (TimeoutException, NoSuchElementException) as e:
         print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
         all_tabs_opened = False
