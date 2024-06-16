@@ -51,11 +51,16 @@ main_tabs = {
     "Archive": ("/fpa/Archive", (By.CSS_SELECTOR, "table.ListView")),
 }
 
-# Sub-tabs under the "Users" tab and their corresponding content locators
-user_sub_tabs = {
+# Sub-tabs under different main tabs and their corresponding content locators
+shared_sub_tabs = {
     "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
     "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
     "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
+}
+
+check_mgmt_sub_tabs = {
+    "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
+    "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
 }
 
 all_tabs_opened = True
@@ -70,12 +75,21 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
         success = check_tab(tab_element, tab_name, content_locator)
         if not success:
             all_tabs_opened = False
-        # If the Users tab is successfully opened, check the sub-tabs
-        if tab_name == "Users" and success:
-            for sub_tab_name, (sub_tab_js, sub_content_locator) in user_sub_tabs.items():
-                sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)  # Use the new function to execute JavaScript
+
+        # If a main tab with shared sub-tabs is successfully opened, check the sub-tabs
+        if tab_name in ["Users", "User Roles", "Accounts", "GL/CC's", "Printers", "Misc. Lookups"] and success:
+            for sub_tab_name, (sub_tab_js, sub_content_locator) in shared_sub_tabs.items():
+                sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
                 if not sub_success:
                     all_tabs_opened = False
+
+        # If the Check Mgmt. tab is successfully opened, check its specific sub-tabs
+        if tab_name == "Check Mgmt." and success:
+            for sub_tab_name, (sub_tab_js, sub_content_locator) in check_mgmt_sub_tabs.items():
+                sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+                if not sub_success:
+                    all_tabs_opened = False
+
     except (TimeoutException, NoSuchElementException) as e:
         print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
         all_tabs_opened = False
