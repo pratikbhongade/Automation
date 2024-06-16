@@ -60,6 +60,9 @@ def validate_first_list_element_and_cancel():
         )
         print("First list element opened successfully.")
         
+        # Wait for 3 seconds before clicking the cancel button
+        time.sleep(3)
+        
         # Find and click the cancel button
         cancel_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
@@ -89,45 +92,42 @@ main_tabs = {
 }
 
 # Sub-tabs for different main tabs and their corresponding content locators
-users_sub_tabs = {
-    "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
-    "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
-}
-
-user_roles_sub_tabs = {
-    "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
-    "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
-}
-
-accounts_sub_tabs = {
-    "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
-    "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
-}
-
-glcc_sub_tabs = {
-    "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
-    "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
-}
-
-printers_sub_tabs = {
-    "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
-    "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
-}
-
-misc_lookups_sub_tabs = {
-    "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
-    "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
-}
-
-check_mgmt_sub_tabs = {
-    "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
-    "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
+sub_tabs_map = {
+    "Users": {
+        "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
+    },
+    "User Roles": {
+        "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
+        "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
+    },
+    "Accounts": {
+        "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
+    },
+    "GL/CC's": {
+        "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
+        "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
+    },
+    "Printers": {
+        "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
+    },
+    "Misc. Lookups": {
+        "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
+        "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
+    },
+    "Check Mgmt.": {
+        "Active": ("showList('Active', 'CheckManagement');", (By.ID, "content")),
+        "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
+        "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
+    },
 }
 
 all_tabs_opened = True
@@ -139,8 +139,8 @@ def handle_sub_tabs(tab_name, sub_tabs):
         sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
         if not sub_success:
             all_tabs_opened = False
-        if tab_name == "Users" and sub_tab_name == "Active" and sub_success:
-            # Validate the first list element under "Users - Active" and click the cancel button
+        if sub_success:
+            # Validate the first list element under each sub-tab and click the cancel button
             first_list_element_success = validate_first_list_element_and_cancel()
             if not first_list_element_success:
                 all_tabs_opened = False
@@ -158,20 +158,8 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
             all_tabs_opened = False
         else:
             # Handle sub-tabs for each main tab
-            if tab_name == "Users":
-                handle_sub_tabs(tab_name, users_sub_tabs)
-            elif tab_name == "User Roles":
-                handle_sub_tabs(tab_name, user_roles_sub_tabs)
-            elif tab_name == "Accounts":
-                handle_sub_tabs(tab_name, accounts_sub_tabs)
-            elif tab_name == "GL/CC's":
-                handle_sub_tabs(tab_name, glcc_sub_tabs)
-            elif tab_name == "Printers":
-                handle_sub_tabs(tab_name, printers_sub_tabs)
-            elif tab_name == "Misc. Lookups":
-                handle_sub_tabs(tab_name, misc_lookups_sub_tabs)
-            elif tab_name == "Check Mgmt.":
-                handle_sub_tabs(tab_name, check_mgmt_sub_tabs)
+            if tab_name in sub_tabs_map:
+                handle_sub_tabs(tab_name, sub_tabs_map[tab_name])
 
     except (TimeoutException, NoSuchElementException) as e:
         print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
