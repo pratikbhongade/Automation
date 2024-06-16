@@ -11,12 +11,11 @@ driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
 # Function to check if a tab opens properly
 def check_tab(tab_element, tab_name, content_locator):
     try:
-        time.sleep(3)  # Wait for 3 seconds before clicking the tab
+        time.sleep(2)  # Wait for 2 seconds before clicking the tab
         tab_element.click()
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 3).until(
             EC.visibility_of_element_located(content_locator)
         )
-        print(f"Tab '{tab_name}' opened successfully.")
         return True
     except TimeoutException:
         print(f"Failed to open tab '{tab_name}'.")
@@ -25,61 +24,69 @@ def check_tab(tab_element, tab_name, content_locator):
 # Function to check if a sub-tab opens properly by executing JavaScript
 def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
     try:
-        time.sleep(3)  # Wait for 3 seconds before clicking the sub-tab
-        print(f"Executing JavaScript for sub-tab '{sub_tab_name}': {sub_tab_js}")
+        time.sleep(2)  # Wait for 2 seconds before clicking the sub-tab
         driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 3).until(
             EC.visibility_of_element_located(content_locator)
         )
-        print(f"Sub-tab '{sub_tab_name}' opened successfully.")
         return True
     except TimeoutException:
         print(f"Failed to open sub-tab '{sub_tab_name}'.")
         return False
     except JavascriptException as e:
         print(f"JavaScript error on sub-tab '{sub_tab_name}': {e}")
-        # Adding more details for debugging
-        print(driver.execute_script("return window.onerror"))
         return False
 
 # Function to validate the first list element under the specified column and click the cancel button
 def validate_first_list_element_and_cancel(column_index):
     try:
         # Wait for the table to be visible
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 3).until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView"))
         )
         # Find the first element in the specified column
-        first_element = WebDriverWait(driver, 10).until(
+        first_element = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a"))
         )
-        time.sleep(3)  # Wait for 3 seconds before clicking the first element
+        time.sleep(2)  # Wait for 2 seconds before clicking the first element
         first_element.click()
         # Validate that the element opens properly
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 3).until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content"))  # Adjust the selector as needed
         )
-        print("First list element opened successfully.")
         
-        # Wait for 3 seconds before clicking the cancel button
-        time.sleep(3)
+        # Wait for 2 seconds before clicking the cancel button
+        time.sleep(2)
         
         # Find and click the cancel button
-        cancel_button = WebDriverWait(driver, 10).until(
+        cancel_button = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
         )
-        time.sleep(3)  # Wait for 3 seconds before clicking the cancel button
+        time.sleep(2)  # Wait for 2 seconds before clicking the cancel button
         cancel_button.click()
-        print("Cancel button clicked successfully.")
         
         return True
     except (TimeoutException, NoSuchElementException) as e:
         print(f"Failed to open the first list element or click the cancel button. Exception: {e}")
         return False
 
+# Function to handle the "Search" sub-tab in "Check Mgmt."
+def handle_search_sub_tab():
+    try:
+        # Wait for the Search button to be clickable
+        search_button = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_search_bluebrdr.jpg']"))
+        )
+        time.sleep(2)  # Wait for 2 seconds before clicking the Search button
+        search_button.click()
+        print("Search button clicked successfully.")
+        return True
+    except (TimeoutException, NoSuchElementException) as e:
+        print(f"Failed to click the Search button. Exception: {e}")
+        return False
+
 # Navigate to the webpage containing the tabs
 driver.get('https://itintranet1.keybank.com/fpa/Login')  # Replace with your actual URL
-print(f"Opened URL: {driver.current_url}")
 
 # Main tab elements and their corresponding content locators
 main_tabs = {
@@ -150,24 +157,28 @@ def handle_sub_tabs(tab_name, sub_tabs):
     global all_tabs_opened
     column_index = column_indices[tab_name]
     for sub_tab_name, (sub_tab_js, sub_content_locator) in sub_tabs.items():
-        sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+        if tab_name == "Check Mgmt." and sub_tab_name == "Search":
+            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+            if sub_success:
+                sub_success = handle_search_sub_tab()
+        else:
+            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+            if sub_success:
+                first_list_element_success = validate_first_list_element_and_cancel(column_index)
+                if not first_list_element_success:
+                    all_tabs_opened = False
+
         if not sub_success:
             all_tabs_opened = False
-        if sub_success:
-            # Validate the first list element under each sub-tab and click the cancel button
-            first_list_element_success = validate_first_list_element_and_cancel(column_index)
-            if not first_list_element_success:
-                all_tabs_opened = False
 
 # Check main tabs and their respective sub-tabs
 for tab_name, (tab_href, content_locator) in main_tabs.items():
     try:
         # Find the main tab element using its href attribute
-        print(f"Attempting to click main tab: {tab_name}")
-        tab_element = WebDriverWait(driver, 10).until(
+        tab_element = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
         )
-        time.sleep(3)  # Wait for 3 seconds before clicking the main tab
+        time.sleep(2)  # Wait for 2 seconds before clicking the main tab
         success = check_tab(tab_element, tab_name, content_locator)
         if not success:
             all_tabs_opened = False
@@ -180,8 +191,8 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
         print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
         all_tabs_opened = False
 
-# Wait for 3 seconds before closing the browser
-time.sleep(3)
+# Wait for 2 seconds before closing the browser
+time.sleep(2)
 # Close the browser
 driver.quit()
 
