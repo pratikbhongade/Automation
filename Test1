@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,6 +11,7 @@ driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
 # Function to check if a tab opens properly
 def check_tab(tab_element, tab_name, content_locator):
     try:
+        time.sleep(5)  # Wait for 5 seconds before clicking the tab
         tab_element.click()
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located(content_locator)
