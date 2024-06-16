@@ -23,11 +23,11 @@ driver.get('https://your-website-url.com')  # Replace with your actual URL
 
 # Example tab elements and their corresponding content locators
 tabs = {
-    "Users": ("/fpa/Usr", (By.XPATH, "//div[contains(text(), 'User Content')]")),  # Adjust this locator based on actual content
-    "User Roles": ("/fpa/UsrRoles", (By.XPATH, "//div[contains(text(), 'User Roles Content')]")),  # Adjust this locator based on actual content
-    "Accounts": ("/fpa/Acct", (By.XPATH, "//div[contains(text(), 'Accounts Content')]")),  # Adjust this locator based on actual content
-    "GL/CC's": ("/fpa/GlCstCntr", (By.XPATH, "//div[contains(text(), 'GL/CC Content')]")),  # Adjust this locator based on actual content
-    "Printers": ("/fpa/Printer", (By.XPATH, "//div[contains(text(), 'Printer Content')]")),  # Adjust this locator based on actual content
+    "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
+    "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
+    "Accounts": ("/fpa/Acct", (By.CSS_SELECTOR, "table.ListView")),
+    "GL/CC's": ("/fpa/GlCstCntr", (By.CSS_SELECTOR, "table.ListView")),
+    "Printers": ("/fpa/Printer", (By.CSS_SELECTOR, "table.ListView")),
 }
 
 for tab_name, (tab_href, content_locator) in tabs.items():
