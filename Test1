@@ -53,14 +53,43 @@ main_tabs = {
     "Archive": ("/fpa/Archive", (By.CSS_SELECTOR, "table.ListView")),
 }
 
-# Sub-tabs under different main tabs and their corresponding content locators
-shared_sub_tabs = {
-    "Active": ("showList('Active', '{tab}');", (By.ID, "content")),
-    "Not Active": ("showListNew('InActive', '{tab}');", (By.ID, "content")),
-    "All": ("showListNew('All', '{tab}');", (By.ID, "content")),
+# Sub-tabs for different main tabs and their corresponding content locators
+users_sub_tabs = {
+    "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
+    "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
 }
 
-# Sub-tabs for "Check Mgmt."
+user_roles_sub_tabs = {
+    "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
+    "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
+}
+
+accounts_sub_tabs = {
+    "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
+    "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
+}
+
+glcc_sub_tabs = {
+    "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
+    "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
+}
+
+printers_sub_tabs = {
+    "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
+    "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
+}
+
+misc_lookups_sub_tabs = {
+    "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
+    "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
+    "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
+}
+
 check_mgmt_sub_tabs = {
     "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
     "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
@@ -68,7 +97,15 @@ check_mgmt_sub_tabs = {
 
 all_tabs_opened = True
 
-# Check main tabs
+# Function to handle sub-tabs based on main tab
+def handle_sub_tabs(tab_name, sub_tabs):
+    global all_tabs_opened
+    for sub_tab_name, (sub_tab_js, sub_content_locator) in sub_tabs.items():
+        sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+        if not sub_success:
+            all_tabs_opened = False
+
+# Check main tabs and their respective sub-tabs
 for tab_name, (tab_href, content_locator) in main_tabs.items():
     try:
         # Find the main tab element using its href attribute
@@ -79,21 +116,22 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
         success = check_tab(tab_element, tab_name, content_locator)
         if not success:
             all_tabs_opened = False
-
-        # If a main tab is successfully opened, check its shared sub-tabs
-        if tab_name in ["Users", "User Roles", "Accounts", "GL/CC's", "Printers", "Misc. Lookups"] and success:
-            for sub_tab_name, (sub_tab_js_template, sub_content_locator) in shared_sub_tabs.items():
-                sub_tab_js = sub_tab_js_template.format(tab=tab_name.replace(" ", ""))
-                sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
-                if not sub_success:
-                    all_tabs_opened = False
-
-        # If the "Check Mgmt." tab is successfully opened, check its specific sub-tabs
-        if tab_name == "Check Mgmt." and success:
-            for sub_tab_name, (sub_tab_js, sub_content_locator) in check_mgmt_sub_tabs.items():
-                sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
-                if not sub_success:
-                    all_tabs_opened = False
+        else:
+            # Handle sub-tabs for each main tab
+            if tab_name == "Users":
+                handle_sub_tabs(tab_name, users_sub_tabs)
+            elif tab_name == "User Roles":
+                handle_sub_tabs(tab_name, user_roles_sub_tabs)
+            elif tab_name == "Accounts":
+                handle_sub_tabs(tab_name, accounts_sub_tabs)
+            elif tab_name == "GL/CC's":
+                handle_sub_tabs(tab_name, glcc_sub_tabs)
+            elif tab_name == "Printers":
+                handle_sub_tabs(tab_name, printers_sub_tabs)
+            elif tab_name == "Misc. Lookups":
+                handle_sub_tabs(tab_name, misc_lookups_sub_tabs)
+            elif tab_name == "Check Mgmt.":
+                handle_sub_tabs(tab_name, check_mgmt_sub_tabs)
 
     except (TimeoutException, NoSuchElementException) as e:
         print(f"Tab '{tab_name}' not found or not clickable. Exception: {e}")
