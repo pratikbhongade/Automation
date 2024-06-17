@@ -251,15 +251,39 @@ else:
     validation_results.append(result)
 
 # Function to send email with validation results
-def send_email(subject, body):
+def send_email(subject, validation_results):
+    html_body = (
+        "<html>"
+        "<body>"
+        "<p>Hi Team,</p>"
+        "<p>Please find the validation result of <strong>FPA IT Application</strong>:</p>"
+        "<ul style='font-family: Arial, sans-serif; font-size: 14px; color: #333;'>"
+    )
+    
+    for result in validation_results:
+        if "successfully" in result:
+            html_body += f"<li style='color: green;'><strong>{result}</strong></li>"
+        else:
+            html_body += f"<li style='color: red;'><strong>{result}</strong></li>"
+    
+    html_body += (
+        "</ul>"
+        "<p>Best regards,</p>"
+        "<p><strong>Your Name</strong><br>"
+        "Your Position<br>"
+        "Your Contact Information</p>"
+        "</body>"
+        "</html>"
+    )
+    
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
     mail.To = 'recipient@example.com'  # Replace with the recipient's email address
     mail.Subject = subject
-    mail.Body = body
+    mail.HTMLBody = html_body
     mail.Send()
 
 # Send the validation results via email
 email_subject = "Validation Results"
-email_body = "\n".join(validation_results)
-send_email(email_subject, email_body)
+send_email(email_subject, validation_results)
+
