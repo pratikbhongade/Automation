@@ -257,26 +257,20 @@ else:
 def send_email(subject, validation_results):
     html_body = (
         "<html>"
-        "<body style='font-family: Arial, sans-serif;'>"
+        "<body>"
         "<p>Hi Team,</p>"
         "<p>Please find the validation result of <strong>FPA IT Application</strong>:</p>"
-        "<ol style='font-size: 14px; color: #333;'>"
+        "<ul style='font-family: Arial, sans-serif; font-size: 14px; color: #333;'>"
     )
     
     for result in validation_results:
-        if "Main Tab" in result:
-            html_body += f"<li><strong>{result}</strong></li><ul>"
-        elif "Sub Tab" in result:
-            html_body += f"<li>{result}</li>"
+        if "successfully" in result:
+            html_body += f"<li style='color: green;'><strong>{result}</strong></li>"
         else:
-            html_body += f"</ul><li style='color: red;'>{result}</li>"
-
-    html_body += "</ul></ol>"
+            html_body += f"<li style='color: red;'><strong>{result}</strong></li>"
+    
     html_body += (
-        "<p style='font-size: 16px; color: green;'><strong>Validation Successful</strong></p>" if all_tabs_opened else
-        "<p style='font-size: 16px; color: red;'><strong>Validation Failed</strong></p>"
-    )
-    html_body += (
+        "</ul>"
         "<p>Best regards,</p>"
         "<p><strong>Your Name</strong><br>"
         "Your Position<br>"
@@ -295,3 +289,4 @@ def send_email(subject, validation_results):
 # Send the validation results via email
 email_subject = "Validation Results"
 send_email(email_subject, validation_results)
+
