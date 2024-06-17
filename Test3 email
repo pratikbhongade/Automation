@@ -252,22 +252,33 @@ else:
 
 # Function to send email with validation results
 def send_email(subject, validation_results):
+    # Group the results by main tab
+    grouped_results = {}
+    for result in validation_results:
+        parts = result.split(": ", 1)
+        main_tab = parts[0].split(" ")[1] if "tab" in parts[0] else parts[0].split(" ")[-1]
+        if main_tab not in grouped_results:
+            grouped_results[main_tab] = []
+        grouped_results[main_tab].append(result)
+    
+    # Construct the HTML body
     html_body = (
         "<html>"
-        "<body>"
+        "<body style='font-family: Arial, sans-serif;'>"
         "<p>Hi Team,</p>"
         "<p>Please find the validation result of <strong>FPA IT Application</strong>:</p>"
-        "<ul style='font-family: Arial, sans-serif; font-size: 14px; color: #333;'>"
     )
     
-    for result in validation_results:
-        if "successfully" in result:
-            html_body += f"<li style='color: green;'><strong>{result}</strong></li>"
-        else:
-            html_body += f"<li style='color: red;'><strong>{result}</strong></li>"
-    
+    for main_tab, results in grouped_results.items():
+        html_body += f"<h3 style='color: #1f497d;'>{main_tab}</h3><ul style='font-size: 14px; color: #333;'>"
+        for result in results:
+            if "successfully" in result:
+                html_body += f"<li style='color: green;'><strong>{result}</strong></li>"
+            else:
+                html_body += f"<li style='color: red;'><strong>{result}</strong></li>"
+        html_body += "</ul><br>"
+
     html_body += (
-        "</ul>"
         "<p>Best regards,</p>"
         "<p><strong>Your Name</strong><br>"
         "Your Position<br>"
@@ -286,4 +297,5 @@ def send_email(subject, validation_results):
 # Send the validation results via email
 email_subject = "Validation Results"
 send_email(email_subject, validation_results)
+
 
