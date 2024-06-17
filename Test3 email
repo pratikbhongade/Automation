@@ -198,10 +198,10 @@ def handle_sub_tabs(tab_name, sub_tabs):
                     all_tabs_opened = False
 
         if sub_success:
-            result = f"Sub Tab '{sub_tab_name}' in '{tab_name}' opened successfully."
+            result = f"Sub Tab '{sub_tab_name}' opened successfully."
             sub_tab_results.append(result)
         else:
-            result = f"Failed to open Sub Tab '{sub_tab_name}' in '{tab_name}'."
+            result = f"Failed to open Sub Tab '{sub_tab_name}'."
             sub_tab_results.append(result)
             all_tabs_opened = False
     
@@ -221,15 +221,16 @@ for tab_name, (tab_href, content_locator) in main_tabs.items():
             result = f"Main Tab '{tab_name}' opened successfully."
             print(result)
             validation_results.append(result)
+
+            if tab_name in sub_tabs_map:
+                sub_tab_results = handle_sub_tabs(tab_name, sub_tabs_map[tab_name])
+                validation_results.extend(sub_tab_results)
+
         else:
             result = f"Failed to open Main Tab '{tab_name}'."
             print(result)
             validation_results.append(result)
             all_tabs_opened = False
-
-        if success and tab_name in sub_tabs_map:
-            sub_tab_results = handle_sub_tabs(tab_name, sub_tabs_map[tab_name])
-            validation_results.extend(sub_tab_results)
 
     except (TimeoutException, NoSuchElementException) as e:
         result = f"Main Tab '{tab_name}' not found or not clickable. Exception: {e}"
@@ -262,17 +263,19 @@ def send_email(subject, validation_results):
         "<ol style='font-size: 14px; color: #333;'>"
     )
     
-    current_main_tab = ""
     for result in validation_results:
         if "Main Tab" in result:
-            if current_main_tab:
-                html_body += "</ul>"
-            current_main_tab = result.split("'")[1]
-            html_body += f"<li>{result}<ul>"
-        else:
+            html_body += f"<li><strong>{result}</strong></li><ul>"
+        elif "Sub Tab" in result:
             html_body += f"<li>{result}</li>"
+        else:
+            html_body += f"</ul><li style='color: red;'>{result}</li>"
 
     html_body += "</ul></ol>"
+    html_body += (
+        "<p style='font-size: 16px; color: green;'><strong>Validation Successful</strong></p>" if all_tabs_opened else
+        "<p style='font-size: 16px; color: red;'><strong>Validation Failed</strong></p>"
+    )
     html_body += (
         "<p>Best regards,</p>"
         "<p><strong>Your Name</strong><br>"
