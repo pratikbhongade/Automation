@@ -49,13 +49,13 @@ def check_tab(tab_element, tab_name, content_locator, index):
         result = f"{index}. Main Tab '{tab_name}' opened successfully."
         print(result)
         logging.info(result)
-        validation_results.append(result)
+        validation_results.append((result, "Success"))
         return True
     except TimeoutException:
         result = f"{index}. Failed to open Main Tab '{tab_name}'."
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((result, "Failed"))
         return False
 
 # Function to check if a sub-tab opens properly by executing JavaScript
@@ -69,19 +69,19 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_ind
         result = f"{main_index}.{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
         print(result)
         logging.info(result)
-        validation_results.append(result)
+        validation_results.append((result, "Success"))
         return True
     except TimeoutException:
         result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((result, "Failed"))
         return False
     except JavascriptException as e:
         result = f"{main_index}.{chr(96+sub_index)}. JavaScript error on Sub Tab '{sub_tab_name}': {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((result, "Failed"))
         return False
 
 # Function to validate the first list element under the specified column and click the cancel button
@@ -119,7 +119,7 @@ def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
         result = f"{main_index}.{chr(96+sub_index)}. Failed to open the first list element or click the cancel button. Exception: {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((result, "Failed"))
         return False
 
 # Function to handle the "Search" sub-tab in "Check Mgmt."
@@ -135,13 +135,13 @@ def handle_search_sub_tab(main_index, sub_index):
         result = f"{main_index}.{chr(96+sub_index)}. Search button clicked successfully."
         print(result)
         logging.info(result)
-        validation_results.append(result)
+        validation_results.append((result, "Success"))
         return True
     except (TimeoutException, NoSuchElementException) as e:
         result = f"{main_index}.{chr(96+sub_index)}. Failed to click the Search button. Exception: {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((result, "Failed"))
         return False
 
 # Navigate to the webpage containing the tabs
@@ -230,10 +230,10 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
 
         if sub_success:
             result = f"{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
-            sub_tab_results.append(result)
+            sub_tab_results.append((result, "Success"))
         else:
             result = f"{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
-            sub_tab_results.append(result)
+            sub_tab_results.append((result, "Failed"))
             all_tabs_opened = False
     
     return sub_tab_results
@@ -252,7 +252,7 @@ for i, (tab_name, (tab_href, content_locator)) in enumerate(main_tabs.items(), s
             result = f"{i}. Main Tab '{tab_name}' opened successfully."
             print(result)
             logging.info(result)
-            validation_results.append(result)
+            validation_results.append((result, "Success"))
 
             if tab_name in sub_tabs_map:
                 sub_tab_results = handle_sub_tabs(tab_name, sub_tabs_map[tab_name], i)
@@ -262,14 +262,14 @@ for i, (tab_name, (tab_href, content_locator)) in enumerate(main_tabs.items(), s
             result = f"{i}. Failed to open Main Tab '{tab_name}'."
             print(result)
             logging.error(result)
-            validation_results.append(result)
+            validation_results.append((result, "Failed"))
             all_tabs_opened = False
 
     except (TimeoutException, NoSuchElementException) as e:
         result = f"{i}. Main Tab '{tab_name}' not found or not clickable. Exception: {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((result, "Failed"))
         all_tabs_opened = False
 
 # Wait for 1 second before closing the browser
@@ -279,19 +279,19 @@ driver.quit()
 
 # Print completion message if all tabs opened successfully
 if all_tabs_opened:
-    result = "Validation completed successfully."
-    print(result)
-    logging.info(result)
+    result = ("Validation completed successfully.", "Success")
+    print(result[0])
+    logging.info(result[0])
     validation_results.append(result)
 else:
-    result = "Validation failed."
-    print(result)
-    logging.error(result)
+    result = ("Validation failed.", "Failed")
+    print(result[0])
+    logging.error(result[0])
     validation_results.append(result)
 
 # Function to send email with validation results
 def send_email(subject, validation_results):
-    success_count = sum(1 for result in validation_results if "opened successfully" in result)
+    success_count = sum(1 for result in validation_results if result[1] == "Success")
     failure_count = len(validation_results) - success_count
 
     html_body = (
@@ -306,11 +306,9 @@ def send_email(subject, validation_results):
         "<ul style='font-size: 14px; color: #333;'>"
     )
     
-    for result in validation_results:
-        if "opened successfully" in result:
-            html_body += f"<li style='color: green;'>{result}</li>"
-        else:
-            html_body += f"<li style='color: red;'>{result}</li>"
+    for result, status in validation_results:
+        color = "green" if status == "Success" else "red"
+        html_body += f"<li style='color: {color};'>{result}</li>"
 
     html_body += "</ul>"
     if all_tabs_opened:
