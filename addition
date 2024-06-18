@@ -49,17 +49,17 @@ def check_tab(tab_element, tab_name, content_locator):
         result = f"Main Tab '{tab_name}' opened successfully."
         print(result)
         logging.info(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}. {tab_name}", "Success"))
         return True
     except TimeoutException:
         result = f"Failed to open Main Tab '{tab_name}'."
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}. {tab_name}", "Failed"))
         return False
 
 # Function to check if a sub-tab opens properly by executing JavaScript
-def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
+def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, sub_index):
     try:
         time.sleep(1)  # Wait for 1 second before clicking the sub-tab
         driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
@@ -69,23 +69,23 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator):
         result = f"Sub Tab '{sub_tab_name}' opened successfully."
         print(result)
         logging.info(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}.{chr(96+sub_index)}. {sub_tab_name}", "Success"))
         return True
     except TimeoutException:
         result = f"Failed to open Sub Tab '{sub_tab_name}'."
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}.{chr(96+sub_index)}. {sub_tab_name}", "Failed"))
         return False
     except JavascriptException as e:
         result = f"JavaScript error on Sub Tab '{sub_tab_name}': {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}.{chr(96+sub_index)}. {sub_tab_name}", "Failed"))
         return False
 
 # Function to validate the first list element under the specified column and click the cancel button
-def validate_first_list_element_and_cancel(column_index):
+def validate_first_list_element_and_cancel(column_index, sub_index):
     try:
         # Wait for the table to be visible
         WebDriverWait(driver, 3).until(
@@ -119,11 +119,11 @@ def validate_first_list_element_and_cancel(column_index):
         result = f"Failed to open the first list element or click the cancel button. Exception: {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}.{chr(96+sub_index)}. {sub_tab_name}", "Failed"))
         return False
 
 # Function to handle the "Search" sub-tab in "Check Mgmt."
-def handle_search_sub_tab():
+def handle_search_sub_tab(sub_index):
     try:
         # Wait for the Search button to be clickable
         search_button = WebDriverWait(driver, 3).until(
@@ -135,13 +135,13 @@ def handle_search_sub_tab():
         result = "Search button clicked successfully."
         print(result)
         logging.info(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}.{chr(96+sub_index)}. Search", "Success"))
         return True
     except (TimeoutException, NoSuchElementException) as e:
         result = f"Failed to click the Search button. Exception: {e}"
         print(result)
         logging.error(result)
-        validation_results.append(result)
+        validation_results.append((f"{i}.{chr(96+sub_index)}. Search", "Failed"))
         return False
 
 # Navigate to the webpage containing the tabs
@@ -216,23 +216,23 @@ def handle_sub_tabs(tab_name, sub_tabs):
     global all_tabs_opened
     column_index = column_indices[tab_name]
     sub_tab_results = []
-    for i, (sub_tab_name, (sub_tab_js, sub_content_locator)) in enumerate(sub_tabs.items(), start=1):
+    for sub_index, (sub_tab_name, (sub_tab_js, sub_content_locator)) in enumerate(sub_tabs.items(), start=1):
         if tab_name == "Check Mgmt." and sub_tab_name == "Search":
-            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, sub_index)
             if sub_success:
-                sub_success = handle_search_sub_tab()
+                sub_success = handle_search_sub_tab(sub_index)
         else:
-            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator)
+            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, sub_index)
             if sub_success:
-                first_list_element_success = validate_first_list_element_and_cancel(column_index)
+                first_list_element_success = validate_first_list_element_and_cancel(column_index, sub_index)
                 if not first_list_element_success:
                     all_tabs_opened = False
 
         if sub_success:
-            result = f"{chr(96+i)}. {sub_tab_name}"
+            result = f"{chr(96+sub_index)}. {sub_tab_name}"
             sub_tab_results.append((result, "Success"))
         else:
-            result = f"{chr(96+i)}. {sub_tab_name}"
+            result = f"{chr(96+sub_index)}. {sub_tab_name}"
             sub_tab_results.append((result, "Failed"))
             all_tabs_opened = False
     
