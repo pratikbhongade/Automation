@@ -1,0 +1,379 @@
+import os
+import time
+import logging
+import json
+import requests
+import win32com.client as win32
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
+
+# Set up logging
+log_file_path = os.path.join(os.getcwd(), 'validation.log')
+logging.basicConfig(filename=log_file_path, level=logging.INFO, 
+                    format='%(asctime)s:%(levelname)s:%(message)s')
+
+# Prompt user to select the environment
+environment = input("Please select the environment to be validated (IT, QV, Prod): ")
+
+# Set the URL based on user input
+if environment.lower() == "it":
+    url = 'https://itintranet1.keybank.com/fpa/Login'
+elif environment.lower() == "qv":
+    url = 'https://qintranet1.keybank.com/fpa/Login'
+elif environment.lower() == "prod":
+    url = 'https://intranet1.keybank.com/fpa/Login'
+else:
+    raise ValueError("Invalid environment selected. Please choose 'IT', 'QV', or 'Prod'.")
+
+logging.info(f"Selected environment: {environment}")
+
+# Initialize Edge WebDriver
+driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
+
+validation_results = []
+
+# Function to highlight an element
+def highlight(element):
+    driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, "background: yellow; border: 2px solid red;")
+
+# Function to check if a tab opens properly
+def check_tab(tab_element, tab_name, content_locator, index):
+    try:
+        highlight(tab_element)
+        time.sleep(1)  # Wait for 1 second before clicking the tab
+        tab_element.click()
+        WebDriverWait(driver, 3).until(
+            EC.visibility_of_element_located(content_locator)
+        )
+        result = f"{index}. Main Tab '{tab_name}' opened successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append(result)
+        return True
+    except TimeoutException:
+        result = f"{index}. Failed to open Main Tab '{tab_name}'."
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        return False
+
+# Function to check if a sub-tab opens properly by executing JavaScript
+def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_index):
+    try:
+        time.sleep(1)  # Wait for 1 second before clicking the sub-tab
+        driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
+        WebDriverWait(driver, 3).until(
+            EC.visibility_of_element_located(content_locator)
+        )
+        result = f"{main_index}.{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append(result)
+        return True
+    except TimeoutException:
+        result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        return False
+    except JavascriptException as e:
+        result = f"{main_index}.{chr(96+sub_index)}. JavaScript error on Sub Tab '{sub_tab_name}': {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        return False
+
+# Function to validate the first list element under the specified column and click the cancel button
+def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
+    try:
+        # Wait for the table to be visible
+        WebDriverWait(driver, 3).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView"))
+        )
+        # Find the first element in the specified column
+        first_element = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a"))
+        )
+        highlight(first_element)
+        time.sleep(1)  # Wait for 1 second before clicking the first element
+        first_element.click()
+        # Validate that the element opens properly
+        WebDriverWait(driver, 3).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content"))  # Adjust the selector as needed
+        )
+        
+        # Wait for 1 second before clicking the cancel button
+        time.sleep(1)
+        
+        # Find and click the cancel button
+        cancel_button = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+        )
+        highlight(cancel_button)
+        time.sleep(1)  # Wait for 1 second before clicking the cancel button
+        cancel_button.click()
+        
+        return True
+    except (TimeoutException, NoSuchElementException) as e:
+        result = f"{main_index}.{chr(96+sub_index)}. Failed to open the first list element or click the cancel button. Exception: {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        return False
+
+# Function to handle the "Search" sub-tab in "Check Mgmt."
+def handle_search_sub_tab(main_index, sub_index):
+    try:
+        # Wait for the Search button to be clickable
+        search_button = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_search_bluebrdr.jpg']"))
+        )
+        highlight(search_button)
+        time.sleep(1)  # Wait for 1 second before clicking the Search button
+        search_button.click()
+        result = f"{main_index}.{chr(96+sub_index)}. Search button clicked successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append(result)
+        return True
+    except (TimeoutException, NoSuchElementException) as e:
+        result = f"{main_index}.{chr(96+sub_index)}. Failed to click the Search button. Exception: {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        return False
+
+# Navigate to the webpage containing the tabs
+driver.get(url)  # Use the URL based on user input
+logging.info(f"Navigated to {url}")
+
+# Main tab elements and their corresponding content locators
+main_tabs = {
+    "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
+    "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
+    "Accounts": ("/fpa/Acct", (By.CSS_SELECTOR, "table.ListView")),
+    "GL/CC's": ("/fpa/GlCstCntr", (By.CSS_SELECTOR, "table.ListView")),
+    "Printers": ("/fpa/Printer", (By.CSS_SELECTOR, "table.ListView")),
+    "Misc. Lookups": ("/fpa/AdminMiscLookup", (By.CSS_SELECTOR, "table.ListView")),
+    "Check Mgmt.": ("/fpa/CheckManagement", (By.CSS_SELECTOR, "table.ListView")),
+    "Archive": ("/fpa/Archive", (By.CSS_SELECTOR, "table.ListView")),
+}
+
+# Sub-tabs for different main tabs and their corresponding content locators
+sub_tabs_map = {
+    "Users": {
+        "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
+    },
+    "User Roles": {
+        "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
+        "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
+    },
+    "Accounts": {
+        "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
+    },
+    "GL/CC's": {
+        "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
+        "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
+    },
+    "Printers": {
+        "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
+    },
+    "Misc. Lookups": {
+        "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
+        "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
+    },
+    "Check Mgmt.": {
+        "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
+        "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
+    },
+}
+
+# Map of specific columns to be clicked for each main tab
+column_indices = {
+    "Users": 2,  # 2nd column for Users
+    "User Roles": 2,  # 2nd column for User Roles
+    "Accounts": 2,  # 2nd column for Accounts
+    "GL/CC's": 3,  # 3rd column for GL/CC's
+    "Printers": 2,  # 2nd column for Printers
+    "Misc. Lookups": 2,  # 2nd column for Misc. Lookups
+    "Check Mgmt.": 4,  # 4th column for Check Mgmt.
+}
+
+all_tabs_opened = True
+
+# Function to handle sub-tabs based on main tab
+def handle_sub_tabs(tab_name, sub_tabs, main_index):
+    global all_tabs_opened
+    column_index = column_indices[tab_name]
+    sub_tab_results = []
+    for sub_index, (sub_tab_name, (sub_tab_js, sub_content_locator)) in enumerate(sub_tabs.items(), start=1):
+        if tab_name == "Check Mgmt." and sub_tab_name == "Search":
+            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, main_index, sub_index)
+            if sub_success:
+                sub_success = handle_search_sub_tab(main_index, sub_index)
+        else:
+            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, main_index, sub_index)
+            if sub_success:
+                first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index)
+                if not first_list_element_success:
+                    all_tabs_opened = False
+
+        if sub_success:
+            result = f"{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
+            sub_tab_results.append(result)
+        else:
+            result = f"{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
+            sub_tab_results.append(result)
+            all_tabs_opened = False
+    
+    return sub_tab_results
+
+# Check main tabs and their respective sub-tabs
+for i, (tab_name, (tab_href, content_locator)) in enumerate(main_tabs.items(), start=1):
+    try:
+        # Find the main tab element using its href attribute
+        tab_element = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
+        )
+        highlight(tab_element)
+        time.sleep(1)  # Wait for 1 second before clicking the main tab
+        success = check_tab(tab_element, tab_name, content_locator, i)
+        if success:
+            result = f"{i}. Main Tab '{tab_name}' opened successfully."
+            print(result)
+            logging.info(result)
+            validation_results.append(result)
+
+            if tab_name in sub_tabs_map:
+                sub_tab_results = handle_sub_tabs(tab_name, sub_tabs_map[tab_name], i)
+                validation_results.extend(sub_tab_results)
+
+        else:
+            result = f"{i}. Failed to open Main Tab '{tab_name}'."
+            print(result)
+            logging.error(result)
+            validation_results.append(result)
+            all_tabs_opened = False
+
+    except (TimeoutException, NoSuchElementException) as e:
+        result = f"{i}. Main Tab '{tab_name}' not found or not clickable. Exception: {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        all_tabs_opened = False
+
+# Wait for 1 second before closing the browser
+time.sleep(1)
+# Close the browser
+driver.quit()
+
+# Print completion message if all tabs opened successfully
+if all_tabs_opened:
+    result = "Validation completed successfully."
+    print(result)
+    logging.info(result)
+    validation_results.append(result)
+else:
+    result = "Validation failed."
+    print(result)
+    logging.error(result)
+    validation_results.append(result)
+
+# Function to send email with validation results
+def send_email(subject, validation_results):
+    success_count = sum(1 for result in validation_results if "opened successfully" in result)
+    failure_count = len(validation_results) - success_count
+
+    html_body = (
+        "<html>"
+        "<body style='font-family: Arial, sans-serif;'>"
+        "<p>Hi Team,</p>"
+        "<p>Please find the validation result of <strong>FPA IT Application</strong>:</p>"
+        "<p>Summary:</p>"
+        f"<p>Successful Validations: <strong style='color: green;'>{success_count}</strong></p>"
+        f"<p>Failed Validations: <strong style='color: red;'>{failure_count}</strong></p>"
+        "<p>Details:</p>"
+        "<ul style='font-size: 14px; color: #333;'>"
+    )
+    
+    for result in validation_results:
+        if "opened successfully" in result:
+            html_body += f"<li style='color: green;'>{result}</li>"
+        else:
+            html_body += f"<li style='color: red;'>{result}</li>"
+
+    html_body += "</ul>"
+    if all_tabs_opened:
+        html_body += "<p style='font-size: 18px; color: green;'><strong>Validation Successful</strong></p>"
+    else:
+        html_body += "<p style='font-size: 18px; color: red;'><strong>Validation Failed</strong></p>"
+    html_body += (
+        "<p>Best regards,</p>"
+        "<p><strong>Your Name</strong><br>"
+        "Your Position<br>"
+        "Your Contact Information</p>"
+        "</body>"
+        "</html>"
+    )
+    
+    outlook = win32.Dispatch('outlook.application')
+    mail = outlook.CreateItem(0)
+    mail.To = 'recipient1@example.com; recipient2@example.com'  # Replace with the recipient email addresses
+    mail.Subject = subject
+    mail.HTMLBody = html_body
+    mail.Attachments.Add(log_file_path)  # Attach the log file
+    mail.Send()
+
+# Function to send notification to Microsoft Teams
+def send_teams_notification(webhook_url, validation_results):
+    success_count = sum(1 for result in validation_results if "opened successfully" in result)
+    failure_count = len(validation_results) - success_count
+
+    message = {
+        "title": "FPA IT Application Validation Results",
+        "text": (
+            f"**Summary:**\n"
+            f"- Successful Validations: **{success_count}**\n"
+            f"- Failed Validations: **{failure_count}**\n\n"
+            "**Details:**\n"
+        )
+    }
+    
+    for result in validation_results:
+        if "opened successfully" in result:
+            message["text"] += f"- {result}\n"
+        else:
+            message["text"] += f"- {result}\n"
+    
+    if all_tabs_opened:
+        message["text"] += "\n**Validation Successful**"
+    else:
+        message["text"] += "\n**Validation Failed**"
+
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(webhook_url, headers=headers, data=json.dumps(message))
+    
+    if response.status_code != 200:
+        logging.error(f"Failed to send notification to Microsoft Teams: {response.status_code} {response.text}")
+    else:
+        logging.info("Notification sent to Microsoft Teams successfully.")
+
+# Send the validation results via email
+email_subject = "Validation Results"
+send_email(email_subject, validation_results)
+
+# Webhook URL for Microsoft Teams
+teams_webhook_url = 'https://outlook.office.com/webhook/your-webhook-url'  # Replace with your actual webhook URL
+send_teams_notification(teams_webhook_url, validation_results)
