@@ -346,6 +346,9 @@ send_email(email_subject, validation_results)
 # Function to send SMS with validation results
 from twilio.rest import Client
 
+from twilio.rest import Client
+import time
+
 def send_sms(validation_results):
     client = Client(twilio_account_sid, twilio_auth_token)
     success_count = sum(1 for result in validation_results if result[1] == "Success")
@@ -356,12 +359,22 @@ def send_sms(validation_results):
     else:
         sms_body = "FPA validation failed"
     
-    client.messages.create(
-        body=sms_body,
-        from_=twilio_phone_number,
-        to=recipient_phone_number
-    )
+    recipient_phone_numbers = ['+919788779821', '+919876543210']  # Add more phone numbers as needed
+    
+    for recipient in recipient_phone_numbers:
+        for attempt in range(3):  # Try up to 3 times
+            try:
+                client.messages.create(
+                    body=sms_body,
+                    from_=twilio_phone_number,
+                    to=recipient
+                )
+                print(f"SMS sent to {recipient}")
+                break  # Exit the retry loop if successful
+            except Exception as e:
+                print(f"Failed to send SMS to {recipient}: {e}")
+                if attempt < 2:
+                    time.sleep(5)  # Wait for 5 seconds before retrying
+                else:
+                    print(f"Failed to send SMS to {recipient} after 3 attempts.")
 
-
-# Send the validation results via SMS
-send_sms(validation_results)
