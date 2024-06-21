@@ -6,11 +6,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions as exceptions
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
 
 # Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
-logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+logging.basicConfig(filename=log_file_path, level=logging.INFO, 
+                    format='%(asctime)s:%(levelname)s:%(message)s')
 
 # Prompt user to select the environment
 environment = input("Please select the environment to be validated (IT, QV, Prod): ")
@@ -48,7 +49,7 @@ def check_tab(tab_element, tab_name, content_locator, index):
         logging.info(result)
         validation_results.append((result, "Success"))
         return True
-    except exceptions.TimeoutException:
+    except TimeoutException:
         result = f"{index}. Failed to open Main Tab '{tab_name}'."
         print(result)
         logging.error(result)
@@ -66,13 +67,13 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_ind
         logging.info(result)
         validation_results.append((result, "Success"))
         return True
-    except exceptions.TimeoutException:
+    except TimeoutException:
         result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
         print(result)
         logging.error(result)
         validation_results.append((result, "Failed"))
         return False
-    except exceptions.JavascriptException as e:
+    except JavascriptException as e:
         result = f"{main_index}.{chr(96+sub_index)}. JavaScript error on Sub Tab '{sub_tab_name}': {e}"
         print(result)
         logging.error(result)
@@ -98,13 +99,13 @@ def validate_first_list_element(column_index, main_index, sub_index):
             first_element.click()
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content")))
             return True
-        except exceptions.NoSuchElementException:
+        except NoSuchElementException:
             result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
             print(result)
             logging.info(result)
             validation_results.append((result, "Skipped"))
             return True
-    except (exceptions.TimeoutException, exceptions.NoSuchElementException) as e:
+    except (TimeoutException, NoSuchElementException) as e:
         result = f"{main_index}.{chr(96+sub_index)}. Failed to open the first list element. Exception: {e}"
         print(result)
         logging.error(result)
@@ -123,7 +124,7 @@ def handle_search_sub_tab(main_index, sub_index):
         logging.info(result)
         validation_results.append((result, "Success"))
         return True
-    except (exceptions.TimeoutException, exceptions.NoSuchElementException) as e:
+    except (TimeoutException, NoSuchElementException) as e:
         result = f"{main_index}.{chr(96+sub_index)}. Failed to click the Search button. Exception: {e}"
         print(result)
         logging.error(result)
@@ -333,7 +334,7 @@ for i, (tab_name, (tab_href, content_locator)) in enumerate(main_tabs.items(), s
             validation_results.append((result, "Failed"))
             all_tabs_opened = False
 
-    except (exceptions.TimeoutException, exceptions.NoSuchElementException) as e:
+    except (TimeoutException, NoSuchElementException) as e:
         result = f"{i}. Main Tab '{tab_name}' not found or not clickable. Exception: {e}"
         print(result)
         logging.error(result)
