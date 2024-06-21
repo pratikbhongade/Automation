@@ -222,7 +222,7 @@ sub_tabs_map = {
         "Not Printed": ("showListNew('NotPrinted', 'Checkbatch');", (By.ID, "content")),
         "Queue": ("showListNew('Queue', 'Checkbatch');", (By.ID, "content")),
         "Printed": ("showListNew('Printed', 'Checkbatch');", (By.ID, "content")),
-        "Import Control": ("showListNew('/fpa/CheckBatchView', 'Checkbatch');", (By.ID, "content")),
+        "Import Control": ("window.location.href='/fpa/CheckBatchView';", (By.CSS_SELECTOR, "table.ListView")),
     },
     "Positive Pay": {
         "Not Exported": ("showList('NotExported', 'ExportPositivePay');", (By.ID, "content")),
@@ -296,23 +296,20 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
     global all_tabs_opened
     sub_tab_results = []
     for sub_index, (sub_tab_name, (sub_tab_js, sub_content_locator)) in enumerate(sub_tabs.items(), start=1):
-        if tab_name == "Check Mgmt." and sub_tab_name == "Search":
-            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, main_index, sub_index)
-            if sub_success:
-                sub_success = handle_search_sub_tab(main_index, sub_index)
+        sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, main_index, sub_index)
+        if sub_success:
+            column_index = column_indices.get(tab_name, {}).get(sub_tab_name)
+            if column_index is not None:
+                first_list_element_success = validate_first_list_element(column_index, main_index, sub_index)
+                if not first_list_element_success:
+                    all_tabs_opened = False
+            else:
+                result = f"{main_index}.{chr(96+sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
+                print(result)
+                logging.info(result)
+                validation_results.append((result, "Skipped"))
         else:
-            sub_success = check_sub_tab(sub_tab_js, sub_tab_name, sub_content_locator, main_index, sub_index)
-            if sub_success:
-                column_index = column_indices[tab_name].get(sub_tab_name)
-                if column_index is not None:
-                    first_list_element_success = validate_first_list_element(column_index, main_index, sub_index)
-                    if not first_list_element_success:
-                        all_tabs_opened = False
-                else:
-                    result = f"{main_index}.{chr(96+sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
-                    print(result)
-                    logging.info(result)
-                    validation_results.append((result, "Skipped"))
+            all_tabs_opened = False
 
         if sub_success:
             result = f"{main_index}.{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
@@ -320,7 +317,6 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
         else:
             result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
             sub_tab_results.append((result, "Failed"))
-            all_tabs_opened = False
     
     return sub_tab_results
 
