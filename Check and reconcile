@@ -112,7 +112,7 @@ def validate_first_list_element(column_index, main_index, sub_index):
             )
             return True
         except NoSuchElementException:
-            result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click, so skipping."
+            result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
             print(result)
             logging.info(result)
             validation_results.append((result, "Skipped"))
@@ -233,7 +233,7 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
                 if not first_list_element_success:
                     all_tabs_opened = False
             else:
-                result = f"{main_index}.{chr(96+sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check, so skipping."
+                result = f"{main_index}.{chr(96+sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
@@ -241,10 +241,10 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
             all_tabs_opened = False
 
         if sub_success:
-            result = f"{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
+            result = f"{main_index}.{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
             sub_tab_results.append((result, "Success"))
         else:
-            result = f"{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
+            result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
             sub_tab_results.append((result, "Failed"))
     
     return sub_tab_results
@@ -319,7 +319,7 @@ def send_email(subject, validation_results):
     
     for result, status in validation_results:
         color = "green" if status == "Success" else "red"
-        html_body += f"<li style='color: {color};'>{result}</li>"
+        html_body += f"<li style='color: {color};'>{result[0]}</li>"
 
     html_body += "</ul>"
     if all_tabs_opened:
