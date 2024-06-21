@@ -166,8 +166,8 @@ sub_tabs_map = {
         "Export Control": ("showListNew('Control', 'ExportPositivePay');", (By.ID, "content")),
     },
     "Export": {
-        "General Ledger": ("/fpa/ExportGl", (By.CSS_SELECTOR, "table.ListView")),
-        "PTMS": ("/fpa/ExportPtms", (By.CSS_SELECTOR, "table.ListView")),
+        "General Ledger": ("window.location.href='/fpa/ExportGl';", (By.CSS_SELECTOR, "table.ListView")),
+        "PTMS": ("window.location.href='/fpa/ExportPtms';", (By.CSS_SELECTOR, "table.ListView")),
     },
     "Reconcile": {
         "Not Reconciled": ("showList('NotReconciled', 'Reconcile');", (By.ID, "content")),
@@ -197,7 +197,7 @@ column_indices = {
         "Checks To Approve": 2,
         "Not Printed": 2,
         "Queue": 2,
-        "Printed": 3,
+        "Printed": 4,  # Updated index
         "Import Control": 1,
     },
     "Positive Pay": {
@@ -211,7 +211,7 @@ column_indices = {
     },
     "Reconcile": {
         "Not Reconciled": 5,
-        "Reconciled": 3,
+        "Reconciled": 4,  # Updated index
         "Abandoned": 5,
         "Search": None,
         "Import Control": 1,
