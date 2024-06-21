@@ -10,8 +10,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 
 # Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
-logging.basicConfig(filename=log_file_path, level=logging.INFO, 
-                    format='%(asctime)s:%(levelname)s:%(message)s')
+logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
 # Prompt user to select the environment
 environment = input("Please select the environment to be validated (IT, QV, Prod): ")
@@ -80,8 +79,8 @@ def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_ind
         validation_results.append((result, "Failed"))
         return False
 
-# Function to validate the first list element under the specified column
-def validate_first_list_element(column_index, main_index, sub_index):
+# Function to validate the first list element under the specified column and click the cancel button
+def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
     try:
         WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
         rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
@@ -98,6 +97,18 @@ def validate_first_list_element(column_index, main_index, sub_index):
             time.sleep(1)  # Wait for 1 second before clicking the first element
             first_element.click()
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content")))
+
+            # Wait for 1 second before clicking the cancel button
+            time.sleep(1)
+
+            # Find and click the cancel button
+            cancel_button = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+            )
+            highlight(cancel_button)
+            time.sleep(1)  # Wait for 1 second before clicking the cancel button
+            cancel_button.click()
+
             return True
         except NoSuchElementException:
             result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
@@ -287,7 +298,7 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
             if isinstance(column_index, dict):
                 column_index = column_index.get(sub_tab_name)
             if column_index is not None:
-                first_list_element_success = validate_first_list_element(column_index, main_index, sub_index)
+                first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index)
                 if not first_list_element_success:
                     all_tabs_opened = False
             else:
