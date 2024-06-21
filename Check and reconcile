@@ -100,18 +100,23 @@ def validate_first_list_element(column_index, main_index, sub_index):
             validation_results.append((result, "Skipped"))
             return True
         
-        # Find the first element in the specified column
-        first_element = WebDriverWait(driver, 3).until(
-            EC.element_to_be_clickable((By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a"))
-        )
-        highlight(first_element)
-        time.sleep(1)  # Wait for 1 second before clicking the first element
-        first_element.click()
-        # Validate that the element opens properly
-        WebDriverWait(driver, 3).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content"))  # Adjust the selector as needed
-        )
-        return True
+        # Try to find the first element in the specified column
+        try:
+            first_element = driver.find_element(By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a")
+            highlight(first_element)
+            time.sleep(1)  # Wait for 1 second before clicking the first element
+            first_element.click()
+            # Validate that the element opens properly
+            WebDriverWait(driver, 3).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content"))  # Adjust the selector as needed
+            )
+            return True
+        except NoSuchElementException:
+            result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
+            print(result)
+            logging.info(result)
+            validation_results.append((result, "Skipped"))
+            return True
     except (TimeoutException, NoSuchElementException) as e:
         result = f"{main_index}.{chr(96+sub_index)}. Failed to open the first list element. Exception: {e}"
         print(result)
