@@ -153,7 +153,7 @@ sub_tabs_map = {
         "Not Printed": ("showListNew('NotPrinted', 'Checkbatch');", (By.ID, "content")),
         "Queue": ("showListNew('Queue', 'Checkbatch');", (By.ID, "content")),
         "Printed": ("showListNew('Printed', 'Checkbatch');", (By.ID, "content")),
-        "Import Control": ("/fpa/CheckBatchView", (By.CSS_SELECTOR, "table.ListView")),
+        "Import Control": ("showListNew('/fpa/CheckBatchView', 'Checkbatch');", (By.ID, "content")),
     },
     "Positive Pay": {
         "Not Exported": ("showList('NotExported', 'ExportPositivePay');", (By.ID, "content")),
@@ -169,7 +169,7 @@ sub_tabs_map = {
         "Reconciled": ("showListNew('Reconciled', 'Reconcile');", (By.ID, "content")),
         "Abandoned": ("showListNew('Abandoned', 'Reconcile');", (By.ID, "content")),
         "Search": ("showListNew('Search', 'Reconcile');", (By.ID, "content")),
-        "Import Control": ("/fpa/ReconcileBatchView", (By.CSS_SELECTOR, "table.ListView")),
+        "Import Control": ("window.location.href='/fpa/ReconcileBatchView';", (By.CSS_SELECTOR, "table.ListView")),
     },
 }
 
@@ -197,7 +197,7 @@ column_indices = {
     },
     "Positive Pay": {
         "Not Exported": 5,
-        "Exported": 3,
+        "Exported": 4,  # Updated index
         "Export Control": 1,
     },
     "Export": {
