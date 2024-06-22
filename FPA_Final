@@ -103,11 +103,16 @@ def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
 
             # Find and click the cancel button
             cancel_button = WebDriverWait(driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+                EC.element_to_be_clickable((By.XPATH, "//img[contains(@src, 'btn_cancel.gif')]"))
             )
             highlight(cancel_button)
             time.sleep(1)  # Wait for 1 second before clicking the cancel button
             cancel_button.click()
+
+            result = f"{main_index}.{chr(96+sub_index)}. Successfully clicked the first element and the cancel button."
+            print(result)
+            logging.info(result)
+            validation_results.append((result, "Success"))
 
             return True
         except NoSuchElementException:
