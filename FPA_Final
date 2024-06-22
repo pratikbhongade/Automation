@@ -101,10 +101,10 @@ def validate_first_list_element_and_cancel(column_index, main_index, sub_index, 
             if not skip_cancel:
                 # Wait for 1 second before clicking the cancel button
                 time.sleep(1)
-
+                
                 # Find and click the cancel button
                 cancel_button = WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif' or @src='/fpa/images/btn_cancel.jpg']"))
                 )
                 highlight(cancel_button)
                 time.sleep(1)  # Wait for 1 second before clicking the cancel button
@@ -299,8 +299,9 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
             if isinstance(column_index, dict):
                 column_index = column_index.get(sub_tab_name)
             if column_index is not None:
-                skip_cancel = (tab_name == "Positive Pay" and sub_tab_name == "Export Control")
-                first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, skip_cancel)
+                first_list_element_success = validate_first_list_element_and_cancel(
+                    column_index, main_index, sub_index, skip_cancel=(tab_name == "Positive Pay" and sub_tab_name == "Export Control")
+                )
                 if not first_list_element_success:
                     all_tabs_opened = False
             else:
