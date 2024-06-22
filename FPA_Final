@@ -405,5 +405,5 @@ def send_email(subject, validation_results):
     mail.Send()
 
 # Send the validation results via email
-email_subject = "FPA Validation Results"
+email_subject = "Validation Results"
 send_email(email_subject, validation_results)
