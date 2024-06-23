@@ -98,41 +98,27 @@ def validate_first_list_element_and_cancel(column_index, main_index, sub_index, 
             first_element.click()
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content")))
 
-            if skip_cancel:
-                return True
+            if not skip_cancel:
+                # Wait for 1 second before clicking the cancel button
+                time.sleep(1)
 
-            # Wait for 1 second before clicking the cancel button
-            time.sleep(1)
-
-            # Find and click the cancel button
-            try:
-                cancel_button = WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
-                )
-                highlight(cancel_button)
-                time.sleep(1)  # Wait for 1 second before clicking the cancel button
-                cancel_button.click()
-                result = f"{main_index}.{chr(96+sub_index)}. Cancel button (gif) clicked successfully."
-                print(result)
-                logging.info(result)
-                validation_results.append((result, "Success"))
-            except TimeoutException:
+                # Find and click the cancel button
                 try:
+                    cancel_button = WebDriverWait(driver, 3).until(
+                        EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+                    )
+                except TimeoutException:
                     cancel_button = WebDriverWait(driver, 3).until(
                         EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.jpg']"))
                     )
-                    highlight(cancel_button)
-                    time.sleep(1)  # Wait for 1 second before clicking the cancel button
-                    cancel_button.click()
-                    result = f"{main_index}.{chr(96+sub_index)}. Cancel button (jpg) clicked successfully."
-                    print(result)
-                    logging.info(result)
-                    validation_results.append((result, "Success"))
-                except TimeoutException:
-                    result = f"{main_index}.{chr(96+sub_index)}. Failed to click the cancel button."
-                    print(result)
-                    logging.error(result)
-                    validation_results.append((result, "Failed"))
+
+                highlight(cancel_button)
+                time.sleep(1)  # Wait for 1 second before clicking the cancel button
+                cancel_button.click()
+                result = f"{main_index}.{chr(96+sub_index)}. Clicked cancel button successfully."
+                print(result)
+                logging.info(result)
+                validation_results.append((result, "Success"))
 
             return True
         except NoSuchElementException:
@@ -323,8 +309,10 @@ def handle_sub_tabs(tab_name, sub_tabs, main_index):
             if isinstance(column_index, dict):
                 column_index = column_index.get(sub_tab_name)
             if column_index is not None:
-                skip_cancel = tab_name == "Positive Pay" and sub_tab_name == "Export Control"
-                first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, skip_cancel=skip_cancel)
+                skip_cancel = False
+                if tab_name == "Positive Pay" and sub_tab_name == "Export Control":
+                    skip_cancel = True
+                first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, skip_cancel)
                 if not first_list_element_success:
                     all_tabs_opened = False
             else:
