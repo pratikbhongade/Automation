@@ -3,22 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPA IT Application Validation</title>
+    <title>Validation Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>FPA IT Application Validation</h1>
-        <form action="{{ url_for('validate') }}" method="post">
+        <h1>Welcome to FPA IT Application Validation</h1>
+        <form action="{{ url_for('validate') }}" method="POST">
             <label for="environment">Select Environment:</label>
-            <select name="environment" id="environment" required>
+            <select name="environment" id="environment">
                 <option value="IT">IT</option>
                 <option value="QV">QV</option>
                 <option value="Prod">Prod</option>
             </select>
             <button type="submit">Start Validation</button>
         </form>
+        <div id="status">
+            <h2>Validation Status:</h2>
+            <ul id="updates"></ul>
+        </div>
     </div>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        socket.on('update', function(msg) {
+            const updates = document.getElementById('updates');
+            const newUpdate = document.createElement('li');
+            newUpdate.textContent = msg.data;
+            updates.appendChild(newUpdate);
+        });
+    </script>
 </body>
 </html>
