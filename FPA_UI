@@ -1,14 +1,15 @@
 import os
 import time
 import logging
-import threading
-from flask import Flask, render_template, request, jsonify
 import win32com.client as win32
+import pythoncom
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
+from flask import Flask, request, render_template, jsonify
+import threading
 
 app = Flask(__name__)
 
@@ -16,30 +17,14 @@ app = Flask(__name__)
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
 logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
-# Global variable to hold the validation status
-validation_status = {
-    'status': 'Idle',
-    'results': []
-}
+# Global status dictionary
+validation_status = {'status': 'Idle', 'results': []}
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
-
-@app.route('/start_validation', methods=['POST'])
-def start_validation():
-    environment = request.form['environment']
-    threading.Thread(target=validate_environment, args=(environment,)).start()
-    return jsonify({'status': 'Validation started'})
-
-def validate_environment(environment):
+def validate_application(environment):
     global validation_status
     validation_status['status'] = 'Running'
     validation_status['results'] = []
+
     # Set the URL based on user input
     if environment.lower() == "it":
         url = 'https://itintranet1.keybank.com/fpa/Login'
@@ -105,7 +90,7 @@ def validate_environment(environment):
             return False
 
     # Function to validate the first list element under the specified column and click the cancel button
-    def validate_first_list_element_and_cancel(column_index, main_index, sub_index, skip_cancel=False):
+    def validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=False):
         try:
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
@@ -123,17 +108,44 @@ def validate_environment(environment):
                 first_element.click()
                 WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content")))
 
-                if not skip_cancel:
-                    # Wait for 1 second before clicking the cancel button
-                    time.sleep(1)
+                # Wait for 1 second before clicking the cancel button
+                time.sleep(1)
 
-                    # Find and click the cancel button
-                    cancel_button = WebDriverWait(driver, 3).until(
-                        EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
-                    )
-                    highlight(cancel_button)
-                    time.sleep(1)  # Wait for 1 second before clicking the cancel button
-                    cancel_button.click()
+                # Find and click the cancel button
+                if is_export_control:
+                    try:
+                        cancel_button = WebDriverWait(driver, 3).until(
+                            EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.jpg']"))
+                        )
+                        highlight(cancel_button)
+                        time.sleep(1)  # Wait for 1 second before clicking the cancel button
+                        cancel_button.click()
+                        cancel_result = f"{main_index}.{chr(96+sub_index)}. Cancel button clicked successfully for Export Control."
+                        print(cancel_result)
+                        logging.info(cancel_result)
+                        validation_results.append((cancel_result, "Success"))
+                    except (TimeoutException, NoSuchElementException) as e:
+                        cancel_result = f"{main_index}.{chr(96+sub_index)}. Failed to click the cancel button for Export Control. Exception: {e}"
+                        print(cancel_result)
+                        logging.error(cancel_result)
+                        validation_results.append((cancel_result, "Failed"))
+                else:
+                    try:
+                        cancel_button = WebDriverWait(driver, 3).until(
+                            EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+                        )
+                        highlight(cancel_button)
+                        time.sleep(1)  # Wait for 1 second before clicking the cancel button
+                        cancel_button.click()
+                        cancel_result = f"{main_index}.{chr(96+sub_index)}. Cancel button clicked successfully."
+                        print(cancel_result)
+                        logging.info(cancel_result)
+                        validation_results.append((cancel_result, "Success"))
+                    except (TimeoutException, NoSuchElementException) as e:
+                        cancel_result = f"{main_index}.{chr(96+sub_index)}. Failed to click the cancel button. Exception: {e}"
+                        print(cancel_result)
+                        logging.error(cancel_result)
+                        validation_results.append((cancel_result, "Failed"))
 
                 return True
             except NoSuchElementException:
@@ -324,7 +336,7 @@ def validate_environment(environment):
                 if isinstance(column_index, dict):
                     column_index = column_index.get(sub_tab_name)
                 if column_index is not None:
-                    first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, tab_name == "Positive Pay" and sub_tab_name == "Export Control")
+                    first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=(tab_name == "Positive Pay" and sub_tab_name == "Export Control"))
                     if not first_list_element_success:
                         all_tabs_opened = False
                 else:
@@ -400,8 +412,7 @@ def validate_environment(environment):
         email_body = (
             "<html>"
             "<body style='font-family: Arial, sans-serif;'>"
-            f"<p>Hi Team,</p>"
-            f"<p>Please find the validation result of <strong>FPA {environment.upper()} Application</strong>:</p>"
+            f"<p>Hi Team,</p><p>Please find the validation result of <strong>FPA IT Application - {environment.upper()}</strong>:</p>"
             "<pre style='font-size: 14px; color: #333;'>"
         )
 
@@ -422,24 +433,37 @@ def validate_environment(environment):
             "</html>"
         )
 
+        pythoncom.CoInitialize()  # Initialize COM library for the thread
         outlook = win32.Dispatch('outlook.application')
         mail = outlook.CreateItem(0)
         mail.To = 'Pratik_Bhongade@keybank.com'  # Replace with the recipient email addresses
-        mail.Subject = f"Validation Results for FPA {environment.upper()} Application"
+        mail.Subject = subject
         mail.HTMLBody = email_body
         mail.Attachments.Add(log_file_path)  # Attach the log file
         mail.Send()
+        pythoncom.CoUninitialize()  # Uninitialize COM library for the thread
 
     # Send the validation results via email
-    email_subject = f"Validation Results for FPA {environment.upper()} Application"
+    email_subject = f"Validation Results - {environment.upper()}"
     send_email(email_subject, validation_results)
 
     validation_status['status'] = 'Completed'
     validation_status['results'] = validation_results
 
-@app.route('/status')
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/start_validation', methods=['POST'])
+def start_validation():
+    environment = request.form['environment']
+    validation_thread = threading.Thread(target=validate_application, args=(environment,))
+    validation_thread.start()
+    return jsonify({'status': 'Validation started'}), 202
+
+@app.route('/status', methods=['GET'])
 def status():
     return jsonify(validation_status)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
