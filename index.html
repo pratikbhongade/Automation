@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>FPA Application Validation</h1>
+        <form id="validation-form">
+            <label for="environment">Select Environment:</label>
+            <select id="environment" name="environment" required>
+                <option value="IT">IT</option>
+                <option value="QV">QV</option>
+                <option value="Prod">Prod</option>
+            </select>
+            <button type="submit">Start Validation</button>
+        </form>
+        <div id="status-container">
+            <h2>Status</h2>
+            <p id="status">Idle</p>
+            <div id="results"></div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
