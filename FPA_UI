@@ -1,156 +1,193 @@
-from flask import Flask, render_template, request
-from flask_socketio import SocketIO, emit
 import os
 import time
 import logging
+import threading
+import pythoncom
+import win32com.client as win32
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
+# Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
 logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Function to highlight an element
+def highlight(element):
+    driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, "background: yellow; border: 2px solid red;")
 
-@app.route('/validate', methods=['POST'])
-def validate():
-    environment = request.form.get('environment')
-    perform_validation(environment, socketio)
-    return "Validation started. Check the console for updates."
+# Function to check if a tab opens properly
+def check_tab(tab_element, tab_name, content_locator, index):
+    try:
+        highlight(tab_element)
+        time.sleep(1)  # Wait for 1 second before clicking the tab
+        tab_element.click()
+        WebDriverWait(driver, 3).until(EC.visibility_of_element_located(content_locator))
+        result = f"{index}. Main Tab '{tab_name}' opened successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append((result, "Success"))
+        return True
+    except TimeoutException:
+        result = f"{index}. Failed to open Main Tab '{tab_name}'."
+        print(result)
+        logging.error(result)
+        validation_results.append((result, "Failed"))
+        return False
 
-def perform_validation(environment, socketio):
-    if environment.lower() == "it":
-        url = 'https://itintranet1.keybank.com/fpa/Login'
-    elif environment.lower() == "qv":
-        url = 'https://qintranet1.keybank.com/fpa/Login'
-    elif environment.lower() == "prod":
-        url = 'https://intranet1.keybank.com/fpa/Login'
+# Function to check if a sub-tab opens properly by executing JavaScript
+def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_index):
+    try:
+        time.sleep(1)  # Wait for 1 second before clicking the sub-tab
+        driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
+        WebDriverWait(driver, 3).until(EC.visibility_of_element_located(content_locator))
+        result = f"{main_index}.{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append((result, "Success"))
+        return True
+    except TimeoutException:
+        result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
+        print(result)
+        logging.error(result)
+        validation_results.append((result, "Failed"))
+        return False
+    except JavascriptException as e:
+        result = f"{main_index}.{chr(96+sub_index)}. JavaScript error on Sub Tab '{sub_tab_name}': {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append((result, "Failed"))
+        return False
+
+# Function to validate the first list element under the specified column and click the cancel button
+def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
+    try:
+        WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
+        rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
+        if len(rows) <= 1:  # No data rows
+            result = f"{main_index}.{chr(96+sub_index)}. There is no data in the sub tab '{sub_index}' to check so skipping."
+            print(result)
+            logging.info(result)
+            validation_results.append((result, "Skipped"))
+            return True
+
+        try:
+            first_element = driver.find_element(By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a")
+            highlight(first_element)
+            time.sleep(1)  # Wait for 1 second before clicking the first element
+            first_element.click()
+            WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content")))
+
+            # Wait for 1 second before clicking the cancel button
+            time.sleep(1)
+
+            # Find and click the cancel button
+            try:
+                cancel_button = WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
+                )
+            except TimeoutException:
+                cancel_button = WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.jpg']"))
+                )
+
+            highlight(cancel_button)
+            time.sleep(1)  # Wait for 1 second before clicking the cancel button
+            cancel_button.click()
+            result = f"{main_index}.{chr(96+sub_index)}. Cancel button clicked successfully."
+            print(result)
+            logging.info(result)
+            validation_results.append((result, "Success"))
+
+            return True
+        except NoSuchElementException:
+            result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
+            print(result)
+            logging.info(result)
+            validation_results.append((result, "Skipped"))
+            return True
+    except (TimeoutException, NoSuchElementException) as e:
+        result = f"{main_index}.{chr(96+sub_index)}. Failed to open the first list element. Exception: {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append((result, "Failed"))
+        return False
+
+# Function to handle the "Search" sub-tab in "Check Mgmt."
+def handle_search_sub_tab(main_index, sub_index):
+    try:
+        search_button = WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_search_bluebrdr.jpg']")))
+        highlight(search_button)
+        time.sleep(1)  # Wait for 1 second before clicking the Search button
+        search_button.click()
+        result = f"{main_index}.{chr(96+sub_index)}. Search button clicked successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append((result, "Success"))
+        return True
+    except (TimeoutException, NoSuchElementException) as e:
+        result = f"{main_index}.{chr(96+sub_index)}. Failed to click the Search button. Exception: {e}"
+        print(result)
+        logging.error(result)
+        validation_results.append((result, "Failed"))
+        return False
+
+# Function to send email with validation results
+def send_email(subject, validation_results, environment):
+    pythoncom.CoInitialize()  # Initialize COM library
+    email_body = (
+        "<html>"
+        "<body style='font-family: Arial, sans-serif;'>"
+        f"<p>Hi Team,</p>"
+        f"<p>Please find the validation result of <strong>{environment.upper()} FPA IT Application</strong>:</p>"
+        "<pre style='font-size: 14px; color: #333;'>"
+    )
+
+    for result, status in validation_results:
+        email_body += f"{result}\n"
+
+    email_body += "</pre>"
+    if all_tabs_opened:
+        email_body += "<p style='font-size: 18px; color: green;'><strong>Validation Successful</strong></p>"
     else:
-        raise ValueError("Invalid environment selected. Please choose 'IT', 'QV', or 'Prod'.")
+        email_body += "<p style='font-size: 18px; color: red;'><strong>Validation Failed</strong></p>"
+    email_body += (
+        "<p>Best regards,</p>"
+        "<p><strong>Your Name</strong><br>"
+        "Your Position<br>"
+        "Your Contact Information</p>"
+        "</body>"
+        "</html>"
+    )
 
-    logging.info(f"Selected environment: {environment}")
+    outlook = win32.Dispatch('outlook.application')
+    mail = outlook.CreateItem(0)
+    mail.To = 'Pratik_Bhongade@keybank.com'
+    mail.Subject = subject
+    mail.HTMLBody = email_body
+    mail.Attachments.Add(log_file_path)
+    mail.Send()
+    pythoncom.CoUninitialize()  # Uninitialize COM library
 
-    options = webdriver.EdgeOptions()
-    options.add_argument("--enable-chrome-browser-cloud-management")
+def perform_validation():
+    global validation_results, all_tabs_opened, driver, environment
 
-    driver = webdriver.Edge(options=options)
-
+    # Initialize Edge WebDriver
+    driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
     validation_results = []
 
-    def highlight(element):
-        driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, "background: yellow; border: 2px solid red;")
-
-    def check_tab(tab_element, tab_name, content_locator, index):
-        try:
-            highlight(tab_element)
-            time.sleep(1)
-            tab_element.click()
-            WebDriverWait(driver, 3).until(EC.visibility_of_element_located(content_locator))
-            result = f"{index}. Main Tab '{tab_name}' opened successfully."
-            print(result)
-            logging.info(result)
-            validation_results.append((result, "Success"))
-            socketio.emit('update', {'message': result})
-            return True
-        except TimeoutException:
-            result = f"{index}. Failed to open Main Tab '{tab_name}'."
-            print(result)
-            logging.error(result)
-            validation_results.append((result, "Failed"))
-            socketio.emit('update', {'message': result})
-            return False
-
-    def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_index):
-        try:
-            time.sleep(1)
-            driver.execute_script(sub_tab_js)
-            WebDriverWait(driver, 3).until(EC.visibility_of_element_located(content_locator))
-            result = f"{main_index}.{chr(96+sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
-            print(result)
-            logging.info(result)
-            validation_results.append((result, "Success"))
-            socketio.emit('update', {'message': result})
-            return True
-        except TimeoutException:
-            result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
-            print(result)
-            logging.error(result)
-            validation_results.append((result, "Failed"))
-            socketio.emit('update', {'message': result})
-            return False
-        except JavascriptException as e:
-            result = f"{main_index}.{chr(96+sub_index)}. JavaScript error on Sub Tab '{sub_tab_name}': {e}"
-            print(result)
-            logging.error(result)
-            validation_results.append((result, "Failed"))
-            socketio.emit('update', {'message': result})
-            return False
-
-    def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
-        try:
-            WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
-            rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
-            if len(rows) <= 1:
-                result = f"{main_index}.{chr(96+sub_index)}. There is no data in the sub tab '{sub_index}' to check so skipping."
-                print(result)
-                logging.info(result)
-                validation_results.append((result, "Skipped"))
-                socketio.emit('update', {'message': result})
-                return True
-
-            try:
-                first_element = driver.find_element(By.XPATH, f"//table[@class='ListView']/tbody/tr[2]/td[{column_index}]/a")
-                highlight(first_element)
-                time.sleep(1)
-                first_element.click()
-                WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div#content")))
-
-                time.sleep(1)
-
-                try:
-                    cancel_button = WebDriverWait(driver, 3).until(
-                        EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
-                    )
-                except TimeoutException:
-                    cancel_button = WebDriverWait(driver, 3).until(
-                        EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.jpg']"))
-                    )
-                highlight(cancel_button)
-                time.sleep(1)
-                cancel_button.click()
-
-                result = f"{main_index}.{chr(96+sub_index)}. Cancel button clicked successfully."
-                print(result)
-                logging.info(result)
-                validation_results.append((result, "Success"))
-                socketio.emit('update', {'message': result})
-
-                return True
-            except NoSuchElementException:
-                result = f"{main_index}.{chr(96+sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
-                print(result)
-                logging.info(result)
-                validation_results.append((result, "Skipped"))
-                socketio.emit('update', {'message': result})
-                return True
-        except (TimeoutException, NoSuchElementException) as e:
-            result = f"{main_index}.{chr(96+sub_index)}. Failed to open the first list element. Exception: {e}"
-            print(result)
-            logging.error(result)
-            validation_results.append((result, "Failed"))
-            socketio.emit('update', {'message': result})
-            return False
-
-    driver.get(url)
+    # Navigate to the webpage containing the tabs
+    driver.get(url)  # Use the URL based on user input
     logging.info(f"Navigated to {url}")
 
+    # Main tab elements and their corresponding content locators
     main_tabs = {
         "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
         "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
@@ -168,6 +205,7 @@ def perform_validation(environment, socketio):
         "Reconcile": ("/fpa/Reconcile", (By.CSS_SELECTOR, "table.ListView")),
     }
 
+    # Sub-tabs for different main tabs and their corresponding content locators
     sub_tabs_map = {
         "Users": {
             "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
@@ -241,14 +279,15 @@ def perform_validation(environment, socketio):
         },
     }
 
+    # Map of specific columns to be clicked for each main tab and sub-tab
     column_indices = {
-        "Users": 2,
-        "User Roles": 2,
-        "Accounts": 2,
-        "GL/CC's": 3,
-        "Printers": 2,
-        "Misc. Lookups": 2,
-        "Check Mgmt.": 4,
+        "Users": 2,  # 2nd column for Users
+        "User Roles": 2,  # 2nd column for User Roles
+        "Accounts": 2,  # 2nd column for Accounts
+        "GL/CC's": 3,  # 3rd column for GL/CC's
+        "Printers": 2,  # 2nd column for Printers
+        "Misc. Lookups": 2,  # 2nd column for Misc. Lookups
+        "Check Mgmt.": 4,  # 4th column for Check Mgmt.
         "Checks": {
             "New Check": None,
             "Requested": 2,
@@ -289,6 +328,7 @@ def perform_validation(environment, socketio):
 
     all_tabs_opened = True
 
+    # Function to handle sub-tabs based on main tab
     def handle_sub_tabs(tab_name, sub_tabs, main_index):
         global all_tabs_opened
         sub_tab_results = []
@@ -307,7 +347,6 @@ def perform_validation(environment, socketio):
                     print(result)
                     logging.info(result)
                     validation_results.append((result, "Skipped"))
-                    socketio.emit('update', {'message': result})
             else:
                 all_tabs_opened = False
 
@@ -317,16 +356,18 @@ def perform_validation(environment, socketio):
             else:
                 result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
                 sub_tab_results.append((result, "Failed"))
-
+        
         return sub_tab_results
 
+    # Check main tabs and their respective sub-tabs
     for i, (tab_name, (tab_href, content_locator)) in enumerate(main_tabs.items(), start=1):
         try:
+            # Find the main tab element using its href attribute
             tab_element = WebDriverWait(driver, 3).until(
                 EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_href}']"))
             )
             highlight(tab_element)
-            time.sleep(1)
+            time.sleep(1)  # Wait for 1 second before clicking the main tab
             success = check_tab(tab_element, tab_name, content_locator, i)
             if success:
                 result = f"{i}. Main Tab '{tab_name}' opened successfully."
@@ -352,9 +393,12 @@ def perform_validation(environment, socketio):
             validation_results.append((result, "Failed"))
             all_tabs_opened = False
 
+    # Wait for 1 second before closing the browser
     time.sleep(1)
+    # Close the browser
     driver.quit()
 
+    # Print completion message if all tabs opened successfully
     if all_tabs_opened:
         result = ("Validation completed successfully.", "Success")
         print(result[0])
@@ -366,42 +410,27 @@ def perform_validation(environment, socketio):
         logging.error(result[0])
         validation_results.append(result)
 
-    email_subject = f"{environment.upper()} Validation Results"
+    # Send the validation results via email
+    email_subject = f"Validation Results - {environment.upper()}"
     send_email(email_subject, validation_results, environment)
 
-def send_email(subject, validation_results, environment):
-    email_body = (
-        "<html>"
-        "<body style='font-family: Arial, sans-serif;'>"
-        f"<p>Hi Team,</p>"
-        f"<p>Please find the validation result of <strong>{environment.upper()} FPA IT Application</strong>:</p>"
-        "<pre style='font-size: 14px; color: #333;'>"
-    )
+# Flask routes
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-    for result, status in validation_results:
-        email_body += f"{result}\n"
+@app.route('/validate', methods=['POST'])
+def validate():
+    global environment
+    environment = request.form['environment']
+    thread = threading.Thread(target=perform_validation)
+    thread.start()
+    return render_template('index.html', message=f"Validation started for {environment} environment. Please wait for the email with the results.")
 
-    email_body += "</pre>"
-    if all_tabs_opened:
-        email_body += "<p style='font-size: 18px; color: green;'><strong>Validation Successful</strong></p>"
-    else:
-        email_body += "<p style='font-size: 18px; color: red;'><strong>Validation Failed</strong></p>"
-    email_body += (
-        "<p>Best regards,</p>"
-        "<p><strong>Your Name</strong><br>"
-        "Your Position<br>"
-        "Your Contact Information</p>"
-        "</body>"
-        "</html>"
-    )
+# Flask-SocketIO event to update progress
+@socketio.on('connect')
+def handle_connect():
+    emit('message', {'data': 'Connected'})
 
-    outlook = win32.Dispatch('outlook.application')
-    mail = outlook.CreateItem(0)
-    mail.To = 'Pratik_Bhongade@keybank.com'
-    mail.Subject = subject
-    mail.HTMLBody = email_body
-    mail.Attachments.Add(log_file_path)
-    mail.Send()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     socketio.run(app, debug=True)
