@@ -1,16 +1,15 @@
 import os
 import time
-import logging
 import threading
-import pythoncom
+import logging
 import win32com.client as win32
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
-from flask import Flask, render_template, request
-from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -18,6 +17,10 @@ socketio = SocketIO(app)
 # Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
 logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+
+environment = None
+url = None
+validation_results = []
 
 # Function to highlight an element
 def highlight(element):
@@ -89,15 +92,9 @@ def validate_first_list_element_and_cancel(column_index, main_index, sub_index):
             time.sleep(1)
 
             # Find and click the cancel button
-            try:
-                cancel_button = WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
-                )
-            except TimeoutException:
-                cancel_button = WebDriverWait(driver, 3).until(
-                    EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.jpg']"))
-                )
-
+            cancel_button = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif'] | //img[@src='/fpa/images/btn_cancel.jpg']"))
+            )
             highlight(cancel_button)
             time.sleep(1)  # Wait for 1 second before clicking the cancel button
             cancel_button.click()
@@ -141,12 +138,11 @@ def handle_search_sub_tab(main_index, sub_index):
 
 # Function to send email with validation results
 def send_email(subject, validation_results, environment):
-    pythoncom.CoInitialize()  # Initialize COM library
     email_body = (
         "<html>"
         "<body style='font-family: Arial, sans-serif;'>"
         f"<p>Hi Team,</p>"
-        f"<p>Please find the validation result of <strong>{environment.upper()} FPA IT Application</strong>:</p>"
+        f"<p>Please find the validation result of <strong>FPA {environment.upper()} Application</strong>:</p>"
         "<pre style='font-size: 14px; color: #333;'>"
     )
 
@@ -169,162 +165,37 @@ def send_email(subject, validation_results, environment):
 
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
-    mail.To = 'Pratik_Bhongade@keybank.com'
+    mail.To = 'Pratik_Bhongade@keybank.com'  # Replace with the recipient email addresses
     mail.Subject = subject
     mail.HTMLBody = email_body
-    mail.Attachments.Add(log_file_path)
+    mail.Attachments.Add(log_file_path)  # Attach the log file
     mail.Send()
-    pythoncom.CoUninitialize()  # Uninitialize COM library
 
 def perform_validation():
-    global validation_results, all_tabs_opened, driver, environment
+    global driver
+    global all_tabs_opened
+    global validation_results
+    global url  # Ensure url is accessible
+    validation_results = []
+
+    # Set the URL based on user input
+    if environment.lower() == "it":
+        url = 'https://itintranet1.keybank.com/fpa/Login'
+    elif environment.lower() == "qv":
+        url = 'https://qintranet1.keybank.com/fpa/Login'
+    elif environment.lower() == "prod":
+        url = 'https://intranet1.keybank.com/fpa/Login'
+    else:
+        raise ValueError("Invalid environment selected. Please choose 'IT', 'QV', or 'Prod'.")
+
+    logging.info(f"Selected environment: {environment}")
 
     # Initialize Edge WebDriver
     driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
-    validation_results = []
 
     # Navigate to the webpage containing the tabs
     driver.get(url)  # Use the URL based on user input
     logging.info(f"Navigated to {url}")
-
-    # Main tab elements and their corresponding content locators
-    main_tabs = {
-        "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
-        "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
-        "Accounts": ("/fpa/Acct", (By.CSS_SELECTOR, "table.ListView")),
-        "GL/CC's": ("/fpa/GlCstCntr", (By.CSS_SELECTOR, "table.ListView")),
-        "Printers": ("/fpa/Printer", (By.CSS_SELECTOR, "table.ListView")),
-        "Misc. Lookups": ("/fpa/AdminMiscLookup", (By.CSS_SELECTOR, "table.ListView")),
-        "Check Mgmt.": ("/fpa/CheckManagement", (By.CSS_SELECTOR, "table.ListView")),
-        "Archive": ("/fpa/Archive", (By.CSS_SELECTOR, "table.ListView")),
-        "Checks": ("/fpa/Check", (By.CSS_SELECTOR, "table.ListView")),
-        "Payees": ("/fpa/Payee", (By.CSS_SELECTOR, "table.ListView")),
-        "Tax Batch": ("/fpa/Checkbatch", (By.CSS_SELECTOR, "table.ListView")),
-        "Positive Pay": ("/fpa/ExportPositivePay", (By.CSS_SELECTOR, "table.ListView")),
-        "Export": ("/fpa/ExportGl", (By.CSS_SELECTOR, "table.ListView")),
-        "Reconcile": ("/fpa/Reconcile", (By.CSS_SELECTOR, "table.ListView")),
-    }
-
-    # Sub-tabs for different main tabs and their corresponding content locators
-    sub_tabs_map = {
-        "Users": {
-            "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
-            "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
-            "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
-        },
-        "User Roles": {
-            "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
-            "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
-            "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
-        },
-        "Accounts": {
-            "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
-            "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
-            "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
-        },
-        "GL/CC's": {
-            "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
-            "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
-            "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
-        },
-        "Printers": {
-            "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
-            "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
-            "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
-        },
-        "Misc. Lookups": {
-            "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
-            "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
-            "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
-        },
-        "Check Mgmt.": {
-            "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
-            "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
-        },
-        "Checks": {
-            "New Check": ("showList('NewCheck', 'Check');", (By.ID, "content")),
-            "Requested": ("showListNew('Requested', 'Check');", (By.ID, "content")),
-            "Checks To Approve": ("showListNew('ChecksToApprove', 'Check');", (By.ID, "content")),
-            "Not Printed": ("showList('NotPrinted', 'Check');", (By.ID, "content")),
-            "Queue": ("showListNew('Queue', 'Check');", (By.ID, "content")),
-            "Printed": ("showListNew('Printed', 'Check');", (By.ID, "content")),
-            "Search": ("showListNew('Search', 'Check');", (By.ID, "content")),
-            "Reports": ("showListNew('CheckToApproveReport', 'Check');", (By.ID, "content")),
-        },
-        "Payees": {
-            "Search": ("showList('Search', 'Payee');", (By.ID, "content")),
-        },
-        "Tax Batch": {
-            "Checks To Approve": ("showList('ChecksToApprove', 'Checkbatch');", (By.ID, "content")),
-            "Not Printed": ("showListNew('NotPrinted', 'Checkbatch');", (By.ID, "content")),
-            "Queue": ("showListNew('Queue', 'Checkbatch');", (By.ID, "content")),
-            "Printed": ("showListNew('Printed', 'Checkbatch');", (By.ID, "content")),
-            "Import Control": ("window.location.href='/fpa/CheckBatchView';", (By.CSS_SELECTOR, "table.ListView")),
-        },
-        "Positive Pay": {
-            "Not Exported": ("showList('NotExported', 'ExportPositivePay');", (By.ID, "content")),
-            "Exported": ("showListNew('Exported', 'ExportPositivePay');", (By.ID, "content")),
-            "Export Control": ("showListNew('Control', 'ExportPositivePay');", (By.ID, "content")),
-        },
-        "Export": {
-            "General Ledger": ("window.location.href='/fpa/ExportGl';", (By.CSS_SELECTOR, "table.ListView")),
-            "PTMS": ("window.location.href='/fpa/ExportPtms';", (By.CSS_SELECTOR, "table.ListView")),
-        },
-        "Reconcile": {
-            "Not Reconciled": ("showList('NotReconciled', 'Reconcile');", (By.ID, "content")),
-            "Reconciled": ("showListNew('Reconciled', 'Reconcile');", (By.ID, "content")),
-            "Abandoned": ("showListNew('Abandoned', 'Reconcile');", (By.ID, "content")),
-            "Search": ("showListNew('Search', 'Reconcile');", (By.ID, "content")),
-            "Import Control": ("window.location.href='/fpa/ReconcileBatchView';", (By.CSS_SELECTOR, "table.ListView")),
-        },
-    }
-
-    # Map of specific columns to be clicked for each main tab and sub-tab
-    column_indices = {
-        "Users": 2,  # 2nd column for Users
-        "User Roles": 2,  # 2nd column for User Roles
-        "Accounts": 2,  # 2nd column for Accounts
-        "GL/CC's": 3,  # 3rd column for GL/CC's
-        "Printers": 2,  # 2nd column for Printers
-        "Misc. Lookups": 2,  # 2nd column for Misc. Lookups
-        "Check Mgmt.": 4,  # 4th column for Check Mgmt.
-        "Checks": {
-            "New Check": None,
-            "Requested": 2,
-            "Checks To Approve": 2,
-            "Not Printed": 2,
-            "Queue": 2,
-            "Printed": 4,
-            "Search": None,
-            "Reports": 2,
-        },
-        "Payees": {
-            "Search": None,
-        },
-        "Tax Batch": {
-            "Checks To Approve": 2,
-            "Not Printed": 2,
-            "Queue": 2,
-            "Printed": 4,
-            "Import Control": 1,
-        },
-        "Positive Pay": {
-            "Not Exported": 5,
-            "Exported": 4,
-            "Export Control": 1,
-        },
-        "Export": {
-            "General Ledger": 5,
-            "PTMS": 7,
-        },
-        "Reconcile": {
-            "Not Reconciled": 5,
-            "Reconciled": 4,
-            "Abandoned": 5,
-            "Search": None,
-            "Import Control": 1,
-        },
-    }
 
     all_tabs_opened = True
 
@@ -356,7 +227,7 @@ def perform_validation():
             else:
                 result = f"{main_index}.{chr(96+sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
                 sub_tab_results.append((result, "Failed"))
-        
+
         return sub_tab_results
 
     # Check main tabs and their respective sub-tabs
@@ -410,27 +281,159 @@ def perform_validation():
         logging.error(result[0])
         validation_results.append(result)
 
-    # Send the validation results via email
     email_subject = f"Validation Results - {environment.upper()}"
     send_email(email_subject, validation_results, environment)
 
-# Flask routes
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/validate', methods=['POST'])
-def validate():
+@socketio.on('run_validation')
+def handle_run_validation(data):
     global environment
-    environment = request.form['environment']
-    thread = threading.Thread(target=perform_validation)
-    thread.start()
-    return render_template('index.html', message=f"Validation started for {environment} environment. Please wait for the email with the results.")
-
-# Flask-SocketIO event to update progress
-@socketio.on('connect')
-def handle_connect():
-    emit('message', {'data': 'Connected'})
+    environment = data['environment']
+    emit('status', {'message': f'Starting validation for {environment} environment...'})
+    validation_thread = threading.Thread(target=perform_validation)
+    validation_thread.start()
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
+# Main tab elements and their corresponding content locators
+main_tabs = {
+    "Users": ("/fpa/Usr", (By.CSS_SELECTOR, "table.ListView")),
+    "User Roles": ("/fpa/UsrRoles", (By.CSS_SELECTOR, "table.ListView")),
+    "Accounts": ("/fpa/Acct", (By.CSS_SELECTOR, "table.ListView")),
+    "GL/CC's": ("/fpa/GlCstCntr", (By.CSS_SELECTOR, "table.ListView")),
+    "Printers": ("/fpa/Printer", (By.CSS_SELECTOR, "table.ListView")),
+    "Misc. Lookups": ("/fpa/AdminMiscLookup", (By.CSS_SELECTOR, "table.ListView")),
+    "Check Mgmt.": ("/fpa/CheckManagement", (By.CSS_SELECTOR, "table.ListView")),
+    "Archive": ("/fpa/Archive", (By.CSS_SELECTOR, "table.ListView")),
+    "Checks": ("/fpa/Check", (By.CSS_SELECTOR, "table.ListView")),
+    "Payees": ("/fpa/Payee", (By.CSS_SELECTOR, "table.ListView")),
+    "Tax Batch": ("/fpa/Checkbatch", (By.CSS_SELECTOR, "table.ListView")),
+    "Positive Pay": ("/fpa/ExportPositivePay", (By.CSS_SELECTOR, "table.ListView")),
+    "Export": ("/fpa/ExportGl", (By.CSS_SELECTOR, "table.ListView")),
+    "Reconcile": ("/fpa/Reconcile", (By.CSS_SELECTOR, "table.ListView")),
+}
+
+# Sub-tabs for different main tabs and their corresponding content locators
+sub_tabs_map = {
+    "Users": {
+        "Active": ("showList('Active', 'Usr');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Usr');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Usr');", (By.ID, "content")),
+    },
+    "User Roles": {
+        "Active": ("showList('Active', 'UsrRoles');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'UsrRoles');", (By.ID, "content")),
+        "All": ("showListNew('All', 'UsrRoles');", (By.ID, "content")),
+    },
+    "Accounts": {
+        "Active": ("showList('Active', 'Acct');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Acct');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Acct');", (By.ID, "content")),
+    },
+    "GL/CC's": {
+        "Active": ("showList('Active', 'GlCstCntr');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'GlCstCntr');", (By.ID, "content")),
+        "All": ("showListNew('All', 'GlCstCntr');", (By.ID, "content")),
+    },
+    "Printers": {
+        "Active": ("showList('Active', 'Printer');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'Printer');", (By.ID, "content")),
+        "All": ("showListNew('All', 'Printer');", (By.ID, "content")),
+    },
+    "Misc. Lookups": {
+        "Active": ("showList('Active', 'AdminMiscLookup');", (By.ID, "content")),
+        "Not Active": ("showListNew('InActive', 'AdminMiscLookup');", (By.ID, "content")),
+        "All": ("showListNew('All', 'AdminMiscLookup');", (By.ID, "content")),
+    },
+    "Check Mgmt.": {
+        "History": ("showList('History', 'CheckManagement');", (By.ID, "content")),
+        "Search": ("showList('Search', 'CheckManagement');", (By.ID, "content")),
+    },
+    "Checks": {
+        "New Check": ("showList('NewCheck', 'Check');", (By.ID, "content")),
+        "Requested": ("showListNew('Requested', 'Check');", (By.ID, "content")),
+        "Checks To Approve": ("showListNew('ChecksToApprove', 'Check');", (By.ID, "content")),
+        "Not Printed": ("showList('NotPrinted', 'Check');", (By.ID, "content")),
+        "Queue": ("showListNew('Queue', 'Check');", (By.ID, "content")),
+        "Printed": ("showListNew('Printed', 'Check');", (By.ID, "content")),
+        "Search": ("showListNew('Search', 'Check');", (By.ID, "content")),
+        "Reports": ("showListNew('CheckToApproveReport', 'Check');", (By.ID, "content")),
+    },
+    "Payees": {
+        "Search": ("showList('Search', 'Payee');", (By.ID, "content")),
+    },
+    "Tax Batch": {
+        "Checks To Approve": ("showList('ChecksToApprove', 'Checkbatch');", (By.ID, "content")),
+        "Not Printed": ("showListNew('NotPrinted', 'Checkbatch');", (By.ID, "content")),
+        "Queue": ("showListNew('Queue', 'Checkbatch');", (By.ID, "content")),
+        "Printed": ("showListNew('Printed', 'Checkbatch');", (By.ID, "content")),
+        "Import Control": ("window.location.href='/fpa/CheckBatchView';", (By.CSS_SELECTOR, "table.ListView")),
+    },
+    "Positive Pay": {
+        "Not Exported": ("showList('NotExported', 'ExportPositivePay');", (By.ID, "content")),
+        "Exported": ("showListNew('Exported', 'ExportPositivePay');", (By.ID, "content")),
+        "Export Control": ("showListNew('Control', 'ExportPositivePay');", (By.ID, "content")),
+    },
+    "Export": {
+        "General Ledger": ("window.location.href='/fpa/ExportGl';", (By.CSS_SELECTOR, "table.ListView")),
+        "PTMS": ("window.location.href='/fpa/ExportPtms';", (By.CSS_SELECTOR, "table.ListView")),
+    },
+    "Reconcile": {
+        "Not Reconciled": ("showList('NotReconciled', 'Reconcile');", (By.ID, "content")),
+        "Reconciled": ("showListNew('Reconciled', 'Reconcile');", (By.ID, "content")),
+        "Abandoned": ("showListNew('Abandoned', 'Reconcile');", (By.ID, "content")),
+        "Search": ("showListNew('Search', 'Reconcile');", (By.ID, "content")),
+        "Import Control": ("window.location.href='/fpa/ReconcileBatchView';", (By.CSS_SELECTOR, "table.ListView")),
+    },
+}
+
+# Map of specific columns to be clicked for each main tab and sub-tab
+column_indices = {
+    "Users": 2,  # 2nd column for Users
+    "User Roles": 2,  # 2nd column for User Roles
+    "Accounts": 2,  # 2nd column for Accounts
+    "GL/CC's": 3,  # 3rd column for GL/CC's
+    "Printers": 2,  # 2nd column for Printers
+    "Misc. Lookups": 2,  # 2nd column for Misc. Lookups
+    "Check Mgmt.": 4,  # 4th column for Check Mgmt.
+    "Checks": {
+        "New Check": None,
+        "Requested": 2,
+        "Checks To Approve": 2,
+        "Not Printed": 2,
+        "Queue": 2,
+        "Printed": 4,
+        "Search": None,
+        "Reports": 2,
+    },
+    "Payees": {
+        "Search": None,
+    },
+    "Tax Batch": {
+        "Checks To Approve": 2,
+        "Not Printed": 2,
+        "Queue": 2,
+        "Printed": 4,
+        "Import Control": 1,
+    },
+    "Positive Pay": {
+        "Not Exported": 5,
+        "Exported": 4,
+        "Export Control": 1,
+    },
+    "Export": {
+        "General Ledger": 5,
+        "PTMS": 7,
+    },
+    "Reconcile": {
+        "Not Reconciled": 5,
+        "Reconciled": 4,
+        "Abandoned": 5,
+        "Search": None,
+        "Import Control": 1,
+    },
+}
