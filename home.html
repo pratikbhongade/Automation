@@ -3,35 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validation Home</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>FPA IT Application Validation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to FPA IT Application Validation</h1>
-        <form action="{{ url_for('validate') }}" method="POST">
+        <h1>FPA IT Application Validation</h1>
+        <form id="validationForm" method="post" action="/validate">
             <label for="environment">Select Environment:</label>
-            <select name="environment" id="environment">
+            <select id="environment" name="environment">
                 <option value="IT">IT</option>
                 <option value="QV">QV</option>
                 <option value="Prod">Prod</option>
             </select>
             <button type="submit">Start Validation</button>
         </form>
-        <div id="status">
-            <h2>Validation Status:</h2>
-            <ul id="updates"></ul>
-        </div>
+        <div id="progress" style="margin-top: 20px;"></div>
+        <div id="result" style="margin-top: 20px;"></div>
     </div>
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+
     <script>
-        const socket = io();
-        socket.on('update', function(msg) {
-            const updates = document.getElementById('updates');
-            const newUpdate = document.createElement('li');
-            newUpdate.textContent = msg.data;
-            updates.appendChild(newUpdate);
+        var socket = io();
+
+        socket.on('message', function(data) {
+            var progressDiv = document.getElementById('progress');
+            progressDiv.innerHTML = data.data;
         });
     </script>
 </body>
