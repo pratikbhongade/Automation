@@ -2,59 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPA IT Application Validation</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-</head>
-<body>
-    <div class="container mt-5">
-        <h1>FPA IT Application Validation</h1>
-        <form id="validationForm">
-            <div class="form-group">
-                <label for="environment">Select Environment:</label>
-                <select class="form-control" id="environment" name="environment">
-                    <option value="IT">IT</option>
-                    <option value="QV">QV</option>
-                    <option value="Prod">Prod</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Start Validation</button>
-        </form>
-        <div class="mt-5" id="statusContainer">
-            <h2>Status: <span id="statusText">Not Started</span></h2>
-            <ul id="statusList"></ul>
-        </div>
-    </div>
-
+    <title>Validation Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
     <script>
-        $(document).ready(function() {
-            const socket = io();
-
-            $('#validationForm').submit(function(e) {
-                e.preventDefault();
-                const environment = $('#environment').val();
-                $.ajax({
-                    url: '/start_validation',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ environment }),
-                    success: function(response) {
-                        $('#statusText').text('Running');
-                        $('#statusList').empty();
-                    },
-                    error: function(error) {
-                        console.error('Error starting validation:', error);
-                    }
-                });
-            });
+        document.addEventListener("DOMContentLoaded", () => {
+            const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 
             socket.on('status_update', function(data) {
-                $('#statusText').text(data.status);
-                $('#statusList').append('<li>' + data.result + '</li>');
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = `<p>Status: ${data.status}</p><p>Result: ${data.result}</p>`;
+            });
+
+            document.getElementById('start-validation').addEventListener('click', () => {
+                const environment = document.querySelector('input[name="environment"]:checked').value;
+                fetch('/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ environment })
+                }).then(response => response.json()).then(data => {
+                    console.log(data);
+                });
             });
         });
     </script>
+</head>
+<body>
+    <h1>Validation Dashboard</h1>
+    <div>
+        <label>
+            <input type="radio" name="environment" value="it"> IT
+        </label>
+        <label>
+            <input type="radio" name="environment" value="qv"> QV
+        </label>
+        <label>
+            <input type="radio" name="environment" value="prod"> Prod
+        </label>
+        <button id="start-validation">Start Validation</button>
+    </div>
+    <div id="status">
+        <p>Status: Not Started</p>
+    </div>
 </body>
 </html>
