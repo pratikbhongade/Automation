@@ -2,48 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validation Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
-
-            socket.on('status_update', function(data) {
-                const statusDiv = document.getElementById('status');
-                statusDiv.innerHTML = `<p>Status: ${data.status}</p><p>Result: ${data.result}</p>`;
-            });
-
-            document.getElementById('start-validation').addEventListener('click', () => {
-                const environment = document.querySelector('input[name="environment"]:checked').value;
-                fetch('/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ environment })
-                }).then(response => response.json()).then(data => {
-                    console.log(data);
-                });
-            });
+        var socket = io();
+        socket.on('status_update', function(msg) {
+            var statusDiv = document.getElementById('status');
+            statusDiv.innerHTML += '<p>' + msg.data + '</p>';
         });
     </script>
 </head>
 <body>
-    <h1>Validation Dashboard</h1>
-    <div>
-        <label>
-            <input type="radio" name="environment" value="it"> IT
-        </label>
-        <label>
-            <input type="radio" name="environment" value="qv"> QV
-        </label>
-        <label>
-            <input type="radio" name="environment" value="prod"> Prod
-        </label>
-        <button id="start-validation">Start Validation</button>
-    </div>
+    <h1>FPA Validation Dashboard</h1>
+    <form id="envForm">
+        <label for="environment">Select Environment:</label>
+        <select id="environment" name="environment">
+            <option value="IT">IT</option>
+            <option value="QV">QV</option>
+            <option value="Prod">Prod</option>
+        </select>
+        <button type="button" onclick="startValidation()">Start Validation</button>
+    </form>
     <div id="status">
-        <p>Status: Not Started</p>
+        <h2>Real-Time Status:</h2>
     </div>
+
+    <script>
+        function startValidation() {
+            var environment = document.getElementById('environment').value;
+            fetch('/start-validation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ environment: environment })
+            });
+        }
+    </script>
 </body>
 </html>
