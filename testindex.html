@@ -3,83 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPA IT Application Validation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" />
+    <title>FPA Application Validation</title>
     <style>
         body {
-            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
         }
         .container {
-            max-width: 600px;
+            width: 80%;
             margin: auto;
+            overflow: hidden;
+        }
+        header {
+            background: #35424a;
+            color: #ffffff;
+            padding-top: 30px;
+            min-height: 70px;
+            border-bottom: #e8491d 3px solid;
+        }
+        header a {
+            color: #ffffff;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 16px;
+        }
+        header ul {
+            padding: 0;
+            list-style: none;
+        }
+        header li {
+            float: left;
+            display: inline;
+            padding: 0 20px 0 20px;
+        }
+        header #branding {
+            float: left;
+        }
+        header #branding h1 {
+            margin: 0;
+        }
+        header nav {
+            float: right;
+            margin-top: 10px;
+        }
+        section {
+            padding: 20px;
+            margin-top: 20px;
+            background: #ffffff;
+        }
+        .status {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="ui container">
-        <h2 class="ui header">FPA IT Application Validation</h2>
-        <form class="ui form" id="validation-form">
-            <div class="field">
-                <label for="environment">Select Environment:</label>
-                <select name="environment" id="environment" class="ui dropdown">
-                    <option value="">Choose an environment</option>
+    <header>
+        <div class="container">
+            <div id="branding">
+                <h1>FPA Application Validation</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="/">Home</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <section class="container">
+        <h1>Select Environment</h1>
+        <form id="validation-form">
+            <div>
+                <label for="environment">Environment:</label>
+                <select id="environment" name="environment">
                     <option value="IT">IT</option>
                     <option value="QV">QV</option>
                     <option value="Prod">Prod</option>
                 </select>
             </div>
-            <button type="submit" class="ui primary button">Start Validation</button>
+            <button type="button" onclick="startValidation()">Start Validation</button>
         </form>
-
-        <div class="ui message" id="status-message" style="display: none;">
-            <div class="header">Status</div>
-            <p id="status-text"></p>
+        <div class="status">
+            <h2>Status: <span id="status">Not Started</span></h2>
+            <h3>Results:</h3>
+            <pre id="results"></pre>
         </div>
-
-        <div class="ui segment" id="results-segment" style="display: none;">
-            <h3>Validation Results</h3>
-            <pre id="results-text"></pre>
-        </div>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    </section>
     <script>
-        $(document).ready(function() {
-            $('#validation-form').submit(function(event) {
-                event.preventDefault();
-                var environment = $('#environment').val();
-                if (!environment) {
-                    alert('Please select an environment.');
-                    return;
-                }
-
-                $('#status-message').show();
-                $('#status-text').text('Validation in progress...');
-                $('#results-segment').hide();
-
-                $.post('/start_validation', { environment: environment }, function(data) {
-                    console.log(data.message);
-                });
-
+        function startValidation() {
+            const environment = document.getElementById('environment').value;
+            fetch('/start_validation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ environment: environment }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                document.getElementById('status').innerText = 'Running';
                 checkStatus();
-            });
+            })
+            .catch(error => console.error('Error:', error));
+        }
 
-            function checkStatus() {
-                $.get('/status', function(data) {
-                    $('#status-text').text('Status: ' + data.status);
-                    if (data.status === 'Completed') {
-                        var resultsText = '';
-                        data.results.forEach(function(result) {
-                            resultsText += result[0] + '\n';
-                        });
-                        $('#results-text').text(resultsText);
-                        $('#results-segment').show();
-                    } else {
-                        setTimeout(checkStatus, 5000);
-                    }
-                });
-            }
-        });
+        function checkStatus() {
+            fetch('/status')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('status').innerText = data.status;
+                document.getElementById('results').innerText = data.results.map(result => result[0]).join('\n');
+                if (data.status === 'Running') {
+                    setTimeout(checkStatus, 2000);
+                }
+            });
+        }
     </script>
 </body>
 </html>
