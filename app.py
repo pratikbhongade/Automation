@@ -90,7 +90,7 @@ def validate_application(environment):
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
             if len(rows) <= 1:  # No data rows
-                result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
+                result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_index}' to check so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
@@ -117,14 +117,10 @@ def validate_application(environment):
                 highlight(cancel_button)
                 time.sleep(1)  # Wait for 1 second before clicking the cancel button
                 cancel_button.click()
-                result = f"{main_index}.{chr(96 + sub_index)}. Cancel button clicked successfully."
-                print(result)
-                logging.info(result)
-                validation_results.append((result, "Success"))
 
                 return True
             except NoSuchElementException:
-                result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_tab_name}' to click so skipping."
+                result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
@@ -372,7 +368,7 @@ def validate_application(environment):
     driver.quit()
 
     # Print completion message if all tabs opened successfully
-    if all([status == "Success" or status == "Skipped" for result, status in validation_results]):
+    if all_tabs_opened and all([status == "Success" for _, status in validation_results]):
         result = ("Validation completed successfully.", "Success")
         print(result[0])
         logging.info(result[0])
@@ -383,10 +379,11 @@ def validate_application(environment):
         logging.error(result[0])
         validation_results.append(result)
 
-    return validation_results, all([status == "Success" or status == "Skipped" for result, status in validation_results])
+    return validation_results, all_tabs_opened
 
 # Function to send email with validation results
 def send_email(subject, validation_results):
+    pythoncom.CoInitialize()
     email_body = (
         "<html>"
         "<body style='font-family: Arial, sans-serif;'>"
@@ -399,7 +396,7 @@ def send_email(subject, validation_results):
         email_body += f"{result}\n"
 
     email_body += "</pre>"
-    if all([status == "Success" or status == "Skipped" for result, status in validation_results]):
+    if all([status == "Success" for result, status in validation_results]):
         email_body += "<p style='font-size: 18px; color: green;'><strong>Validation Successful</strong></p>"
     else:
         email_body += "<p style='font-size: 18px; color: red;'><strong>Validation Failed</strong></p>"
@@ -412,7 +409,6 @@ def send_email(subject, validation_results):
         "</html>"
     )
 
-    pythoncom.CoInitialize()
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
     mail.To = 'Pratik_Bhongade@keybank.com'  # Replace with the recipient email addresses
