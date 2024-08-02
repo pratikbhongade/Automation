@@ -90,7 +90,7 @@ def validate_application(environment):
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
             if len(rows) <= 1:  # No data rows
-                result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
+                result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_index}' to check so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
@@ -120,7 +120,7 @@ def validate_application(environment):
 
                 return True
             except NoSuchElementException:
-                result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_tab_name}' to click so skipping."
+                result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
@@ -368,14 +368,16 @@ def validate_application(environment):
     driver.quit()
 
     # Print completion message if all tabs opened successfully
-    if all_tabs_opened and all([status == "Success" for result, status in validation_results]):
+    if all_tabs_opened:
         result = ("Validation completed successfully.", "Success")
+        print(result[0])
+        logging.info(result[0])
+        validation_results.append(result)
     else:
         result = ("Validation failed.", "Failed")
-    
-    print(result[0])
-    logging.info(result[0])
-    validation_results.append(result)
+        print(result[0])
+        logging.error(result[0])
+        validation_results.append(result)
 
     return validation_results, all_tabs_opened
 
@@ -385,7 +387,7 @@ def send_email(subject, validation_results):
         "<html>"
         "<body style='font-family: Arial, sans-serif;'>"
         "<p>Hi Team,</p>"
-        f"<p>Please find the validation result of the <strong>{subject}</strong>:</p>"
+        "<p>Please find the validation result of <strong>FPA IT Application</strong>:</p>"
         "<pre style='font-size: 14px; color: #333;'>"
     )
 
@@ -428,11 +430,13 @@ def start_validation():
     validation_status['results'] = []
 
     def validate_environment():
+        pythoncom.CoInitialize()
         results, success = validate_application(environment)
         validation_status['status'] = 'Completed' if success else 'Failed'
         validation_status['results'] = results
         subject = f"{environment.upper()} Environment Validation Results"
         send_email(subject, results)
+        pythoncom.CoUninitialize()
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
