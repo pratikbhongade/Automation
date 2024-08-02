@@ -3,123 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPA Application Validation</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 80%;
-            margin: auto;
-            overflow: hidden;
-        }
-        header {
-            background: #35424a;
-            color: #ffffff;
-            padding-top: 30px;
-            min-height: 70px;
-            border-bottom: #e8491d 3px solid;
-        }
-        header a {
-            color: #ffffff;
-            text-decoration: none;
-            text-transform: uppercase;
-            font-size: 16px;
-        }
-        header ul {
-            padding: 0;
-            list-style: none;
-        }
-        header li {
-            float: left;
-            display: inline;
-            padding: 0 20px 0 20px;
-        }
-        header #branding {
-            float: left;
-        }
-        header #branding h1 {
-            margin: 0;
-        }
-        header nav {
-            float: right;
-            margin-top: 10px;
-        }
-        section {
-            padding: 20px;
-            margin-top: 20px;
-            background: #ffffff;
-        }
-        .status {
-            margin-top: 20px;
-        }
-    </style>
+    <title>FPA IT Application Validation</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <div id="branding">
-                <h1>FPA Application Validation</h1>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="/">Home</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-    <section class="container">
-        <h1>Select Environment</h1>
-        <form id="validation-form">
-            <div>
-                <label for="environment">Environment:</label>
-                <select id="environment" name="environment">
+    <div class="container mt-5">
+        <h1>FPA IT Application Validation</h1>
+        <form id="validationForm">
+            <div class="form-group">
+                <label for="environment">Select Environment:</label>
+                <select class="form-control" id="environment" name="environment">
                     <option value="IT">IT</option>
                     <option value="QV">QV</option>
                     <option value="Prod">Prod</option>
                 </select>
             </div>
-            <button type="button" onclick="startValidation()">Start Validation</button>
+            <button type="submit" class="btn btn-primary">Start Validation</button>
         </form>
-        <div class="status">
-            <h2>Status: <span id="status">Not Started</span></h2>
-            <h3>Results:</h3>
-            <pre id="results"></pre>
+        <div class="mt-5" id="statusContainer">
+            <h2>Status: <span id="statusText">Not Started</span></h2>
+            <ul id="statusList"></ul>
         </div>
-    </section>
-    <script>
-        function startValidation() {
-            const environment = document.getElementById('environment').value;
-            fetch('/start_validation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ environment: environment }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                document.getElementById('status').innerText = 'Running';
-                checkStatus();
-            })
-            .catch(error => console.error('Error:', error));
-        }
+    </div>
 
-        function checkStatus() {
-            fetch('/status')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('status').innerText = data.status;
-                document.getElementById('results').innerText = data.results.map(result => result[0]).join('\n');
-                if (data.status === 'Running') {
-                    setTimeout(checkStatus, 2000);
-                }
+    <script>
+        $(document).ready(function() {
+            $('#validationForm').submit(function(e) {
+                e.preventDefault();
+                const environment = $('#environment').val();
+                $.ajax({
+                    url: '/start_validation',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ environment }),
+                    success: function(response) {
+                        $('#statusText').text('Running');
+                        $('#statusList').empty();
+
+                        // Update status and result when validation is done
+                        if (response.status && response.results) {
+                            $('#statusText').text(response.status);
+                            response.results.forEach(result => {
+                                $('#statusList').append('<li>' + result + '</li>');
+                            });
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Error starting validation:', error);
+                    }
+                });
             });
-        }
+        });
     </script>
 </body>
 </html>
