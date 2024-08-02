@@ -85,12 +85,12 @@ def validate_application(environment):
             return False
 
     # Function to validate the first list element under the specified column and click the cancel button
-    def validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=False):
+    def validate_first_list_element_and_cancel(column_index, main_index, sub_index, sub_tab_name, is_export_control=False):
         try:
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
             if len(rows) <= 1:  # No data rows
-                result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_index}' to check so skipping."
+                result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
@@ -118,23 +118,13 @@ def validate_application(environment):
                 time.sleep(1)  # Wait for 1 second before clicking the cancel button
                 cancel_button.click()
 
-                result = f"{main_index}.{chr(96 + sub_index)}. Cancel button clicked successfully in '{sub_tab_name}'."
-                print(result)
-                logging.info(result)
-                validation_results.append((result, "Success"))
                 return True
             except NoSuchElementException:
-                result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
+                result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_tab_name}' to click so skipping."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Skipped"))
                 return True
-            except TimeoutException as e:
-                result = f"{main_index}.{chr(96 + sub_index)}. Failed to click the cancel button. Exception: {e}"
-                print(result)
-                logging.error(result)
-                validation_results.append((result, "Failed"))
-                return False
         except (TimeoutException, NoSuchElementException) as e:
             result = f"{main_index}.{chr(96 + sub_index)}. Failed to open the first list element. Exception: {e}"
             print(result)
@@ -318,7 +308,9 @@ def validate_application(environment):
                 if isinstance(column_index, dict):
                     column_index = column_index.get(sub_tab_name)
                 if column_index is not None:
-                    first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=is_export_control)
+                    first_list_element_success = validate_first_list_element_and_cancel(
+                        column_index, main_index, sub_index, sub_tab_name, is_export_control=is_export_control
+                    )
                     if not first_list_element_success:
                         all_tabs_opened = False
                 else:
@@ -440,11 +432,13 @@ def start_validation():
     validation_status['results'] = []
 
     def validate_environment():
+        pythoncom.CoInitialize()
         results, success = validate_application(environment)
         validation_status['status'] = 'Completed' if success else 'Failed'
         validation_status['results'] = results
         subject = f"{environment.upper()} Environment Validation Results"
         send_email(subject, results)
+        pythoncom.CoUninitialize()
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
