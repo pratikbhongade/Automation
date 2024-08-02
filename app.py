@@ -85,7 +85,7 @@ def validate_application(environment):
             return False
 
     # Function to validate the first list element under the specified column and click the cancel button
-    def validate_first_list_element_and_cancel(column_index, main_index, sub_index, sub_tab_name, is_export_control=False):
+    def validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=False):
         try:
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
@@ -117,6 +117,10 @@ def validate_application(environment):
                 highlight(cancel_button)
                 time.sleep(1)  # Wait for 1 second before clicking the cancel button
                 cancel_button.click()
+                result = f"{main_index}.{chr(96 + sub_index)}. Cancel button clicked successfully."
+                print(result)
+                logging.info(result)
+                validation_results.append((result, "Success"))
 
                 return True
             except NoSuchElementException:
@@ -308,9 +312,7 @@ def validate_application(environment):
                 if isinstance(column_index, dict):
                     column_index = column_index.get(sub_tab_name)
                 if column_index is not None:
-                    first_list_element_success = validate_first_list_element_and_cancel(
-                        column_index, main_index, sub_index, sub_tab_name, is_export_control=is_export_control
-                    )
+                    first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=is_export_control)
                     if not first_list_element_success:
                         all_tabs_opened = False
                 else:
@@ -370,7 +372,7 @@ def validate_application(environment):
     driver.quit()
 
     # Print completion message if all tabs opened successfully
-    if all_tabs_opened:
+    if all([status == "Success" or status == "Skipped" for result, status in validation_results]):
         result = ("Validation completed successfully.", "Success")
         print(result[0])
         logging.info(result[0])
@@ -381,11 +383,10 @@ def validate_application(environment):
         logging.error(result[0])
         validation_results.append(result)
 
-    return validation_results, all_tabs_opened
+    return validation_results, all([status == "Success" or status == "Skipped" for result, status in validation_results])
 
 # Function to send email with validation results
 def send_email(subject, validation_results):
-    pythoncom.CoInitialize()
     email_body = (
         "<html>"
         "<body style='font-family: Arial, sans-serif;'>"
@@ -398,7 +399,7 @@ def send_email(subject, validation_results):
         email_body += f"{result}\n"
 
     email_body += "</pre>"
-    if all([status == "Success" for result, status in validation_results]):
+    if all([status == "Success" or status == "Skipped" for result, status in validation_results]):
         email_body += "<p style='font-size: 18px; color: green;'><strong>Validation Successful</strong></p>"
     else:
         email_body += "<p style='font-size: 18px; color: red;'><strong>Validation Failed</strong></p>"
@@ -411,6 +412,7 @@ def send_email(subject, validation_results):
         "</html>"
     )
 
+    pythoncom.CoInitialize()
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
     mail.To = 'Pratik_Bhongade@keybank.com'  # Replace with the recipient email addresses
