@@ -39,18 +39,16 @@
                     <div class="progress mt-4">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
                     </div>
-                    <div class="table-responsive mt-4">
-                        <table class="table table-bordered table-hover" id="statusTable">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th scope="col">Step</th>
-                                    <th scope="col">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="statusList"></tbody>
-                        </table>
-                    </div>
-                    <div class="spinner-border text-primary" role="status">
+                    <table class="table table-striped mt-4">
+                        <thead>
+                            <tr>
+                                <th>Step</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusList"></tbody>
+                    </table>
+                    <div class="spinner-border text-primary mt-3" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
@@ -70,26 +68,20 @@
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
                     const results = data.results;
-                    const progress = (results.length / 14) * 100;
-                    $('#progressBar').css('width', `${progress}%`);
+                    const totalItems = 14;  // Adjust based on the actual number of steps
+                    let progress = 0;
 
-                    for (let i = 0; i < results.length; i++) {
-                        const result = results[i][0];
-                        const status = results[i][1];
-                        const row = $('<tr>');
-                        const stepCell = $('<td>').text(result);
-                        const statusCell = $('<td>').text(status);
+                    results.forEach((result) => {
+                        const status = result[1];
+                        const listItem = `<tr><td>${result[0]}</td><td>${status}</td></tr>`;
 
-                        if (status === "Failed") {
-                            row.addClass('table-danger');
-                        } else {
-                            row.addClass('table-success');
-                        }
+                        // Append the table row to the table body
+                        $('#statusList').append(listItem);
 
-                        row.append(stepCell);
-                        row.append(statusCell);
-                        $('#statusList').append(row);
-                    }
+                        // Calculate and update the progress bar width
+                        progress = ((data.results.indexOf(result) + 1) / totalItems) * 100;
+                        $('#progressBar').css('width', `${progress}%`);
+                    });
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
                         $('.spinner-border').hide();
