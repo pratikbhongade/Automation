@@ -34,7 +34,7 @@
                     </form>
                 </div>
 
-                <div class="card p-4 mt-4" id="statusContainer">
+                <div class="card p-4 mt-4" id="statusContainer" style="display: none;">
                     <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
                     <div class="progress mt-4">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
@@ -113,7 +113,8 @@
 
                 // Stop polling when validation is complete
                 function checkCompletion() {
-                    if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
+                    const statusText = $('#statusText').text();
+                    if (statusText === 'Completed' || statusText === 'Failed') {
                         clearInterval(intervalId);
                     }
                 }
