@@ -129,7 +129,9 @@
                 const status = resultItem[1];
 
                 const listItem = $('<li>').addClass('list-group-item');
-                listItem.text(resultText);  // Set the entire message as the text
+
+                // Use textContent to ensure the full message is set
+                listItem[0].textContent = resultText;
 
                 if (status === "Failed") {
                     listItem.addClass('list-group-item-danger');
@@ -184,6 +186,7 @@
         setInterval(checkCompletion, 1000);
     });
 });
+
 
     </script>
 </body>
