@@ -34,7 +34,7 @@
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
                     for (let result of data.results) {
-                        $('#statusList').append('<li>' + result[0] + '</li>'); // Accessing full message
+                        $('#statusList').append('<li>' + result + '</li>');
                     }
                 });
             }
