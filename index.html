@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,76 +7,19 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
-        body {
-            background-color: #f7f7f7;
-        }
-
-        .container {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin-top: 50px;
-        }
-
-        #statusContainer {
-            background-color: #f1f1f1;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress {
-            height: 20px;
-            margin-bottom: 20px;
-        }
-
-        .progress-bar {
-            background-color: #28a745;
-        }
-
-        .status-icon {
-            margin-right: 8px;
-        }
-
-        .success-icon {
-            color: #28a745;
-        }
-
-        .fail-icon {
-            color: #dc3545;
-        }
-
-        .running-icon {
-            color: #ffc107;
-        }
+        /* Your CSS styling here */
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <h1>{{ project_name }}</h1>
-        <form id="validationForm">
-            <div class="form-group">
-                <label for="environment">Select Environment:</label>
-                <select class="form-control" id="environment" name="environment">
-                    <option value="IT">IT</option>
-                    <option value="QV">QV</option>
-                    <option value="Prod">Prod</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Start Validation</button>
-        </form>
-        <div class="progress">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"
-                id="progressBar"></div>
-        </div>
-        <div class="mt-5" id="statusContainer">
-            <h2>Status: <span id="statusText">Not Started</span></h2>
-            <ul id="statusList"></ul>
-        </div>
-    </div>
+    <!-- Your HTML content here -->
 
+    <!-- Include jQuery before your script -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Include Bootstrap JavaScript if needed -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- Your custom script should come after jQuery -->
     <script>
         $(document).ready(function () {
             function fetchStatus() {
@@ -125,5 +67,4 @@
         });
     </script>
 </body>
-
 </html>
