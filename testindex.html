@@ -125,7 +125,13 @@
                     let totalItems = data.results.length;
 
                     data.results.forEach((result) => {
-                        $('#statusList').append('<li>' + result + '</li>');
+                        const listItem = $('<li>').addClass('list-group-item animate-fadein').text(result[0]);
+                        if (result[1] === "Failed") {
+                            listItem.addClass('list-group-item-danger');
+                        } else {
+                            listItem.addClass('list-group-item-success');
+                        }
+                        $('#statusList').append(listItem);
                         progress = ((data.results.indexOf(result) + 1) / totalItems) * 100;
                     });
 
@@ -133,6 +139,7 @@
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
                         clearInterval(intervalId);
+                        $('.spinner-border').hide();
                     }
                 });
             }
@@ -140,14 +147,18 @@
             $('#validationForm').submit(function (e) {
                 e.preventDefault();
                 const environment = $('#environment').val();
+                $('#statusContainer').show();
+                $('#statusText').text('Running');
+                $('#progressBar').css('width', '0%');
+                $('#statusList').empty();
+                $('.spinner-border').show();
+
                 $.ajax({
                     url: '/start_validation',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ environment }),
                     success: function (response) {
-                        $('#statusText').text('Running');
-                        $('#statusList').empty();
                         fetchStatus();
                         intervalId = setInterval(fetchStatus, 3000);
                     },
