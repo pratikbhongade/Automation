@@ -4,18 +4,21 @@ import time
 import logging
 from flask import Flask, render_template, request, jsonify
 import threading
+import pythoncom
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
-from email_sender import send_email  # Import the send_email function
+from email_sender import send_email
 
 app = Flask(__name__)
 
 # Load JSON configuration
 with open('validation_config.json') as config_file:
     config = json.load(config_file)
+
+project_name = config['project_name']
 
 # Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
@@ -266,7 +269,7 @@ def start_validation():
         results, success = validate_application(environment)
         validation_status['status'] = 'Completed' if success else 'Failed'
         validation_status['results'] = results
-        subject = f"FPA {environment.upper()} Environment Validation Results"
+        subject = f"{project_name} {environment.upper()} Environment Validation Results"
         send_email(subject, results, success, log_file_path)
 
     thread = threading.Thread(target=validate_environment)
