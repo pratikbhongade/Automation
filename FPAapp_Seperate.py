@@ -1,10 +1,12 @@
 import os
 import json
+import time
 import logging
-import threading
 from flask import Flask, render_template, request, jsonify
-from validation import validate_application
+import threading
+from validation_logic import validate_application
 from email_sender import send_email
+import pythoncom
 
 app = Flask(__name__)
 
@@ -25,23 +27,24 @@ def home():
 @app.route('/start_validation', methods=['POST'])
 def start_validation():
     data = request.json
-    environment_url = data.get('environment')
-    
-    # Find the environment key (e.g., "FPA IT", "FPA QV", etc.) corresponding to the URL
-    environment_name = next((name for name, url in config['environments'].items() if url == environment_url), None)
-    
-    if not environment_name:
+    environment = data.get('environment')
+
+    # Find the appropriate environment key in the JSON
+    environment_key = next((key for key in config['environments'] if environment in key), None)
+    if not environment_key:
         return jsonify({"error": "Invalid environment selected"}), 400
-    
+
     validation_status['status'] = 'Running'
     validation_status['results'] = []
 
     def validate_environment():
-        results, success = validate_application(environment_url)
+        pythoncom.CoInitialize()
+        results, success = validate_application(environment_key, config)
         validation_status['status'] = 'Completed' if success else 'Failed'
         validation_status['results'] = results
-        subject = f"{environment_name} Environment Validation Results"
+        subject = f"{environment_key} Environment Validation Results"
         send_email(subject, results, success, log_file_path)
+        pythoncom.CoUninitialize()
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
