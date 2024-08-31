@@ -112,72 +112,71 @@
 
     <script>
         $(document).ready(function() {
-            function fetchStatus() {
-                $.get('/status', function(data) {
-                    $('#statusText').text(data.status);
-                    $('#statusList').empty();
-                    const results = data.results;
-                    const progress = (results.length / 14) * 100;
-                    $('#progressBar').css('width', `${progress}%`);
+    function fetchStatus() {
+        $.get('/status', function(data) {
+            $('#statusText').text(data.status);
+            $('#statusList').empty();
+            const results = data.results;
+            const progress = (results.length / 14) * 100; // Adjust the denominator as per the number of total steps.
+            $('#progressBar').css('width', `${progress}%`);
 
-                    for (let i = 0; i < results.length; i++) {
-                        const result = results[i][0];
-                        const status = results[i][1];
-                        const listItem = $('<li>').addClass('list-group-item animate-fadein');
-                        listItem.text(result);
-                        if (status === "Failed") {
-                            listItem.addClass('list-group-item-danger');
-                        } else {
-                            listItem.addClass('list-group-item-success');
-                        }
-                        $('#statusList').append(listItem);
-                    }
-
-                    if (data.status === 'Completed' || data.status === 'Failed') {
-                        $('.spinner-border').hide();
-                    } else {
-                        $('.spinner-border').show();
-                    }
-                });
-            }
-
-            $('#validationForm').submit(function(e) {
-                e.preventDefault();
-                const environment = $('#environment').val();
-                $('#statusContainer').show();
-                $('#statusText').text('Running');
-                $('#progressBar').css('width', '0%');
-                $('#statusList').empty();
-                $('.spinner-border').show();
-
-                $.ajax({
-                    url: '/start_validation',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        environment
-                    }),
-                    success: function(response) {
-                        fetchStatus();
-                    },
-                    error: function(error) {
-                        console.error('Error starting validation:', error);
-                    }
-                });
-
-                // Start polling for status updates
-                const intervalId = setInterval(fetchStatus, 2000);
-
-                // Stop polling when validation is complete
-                function checkCompletion() {
-                    if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
-                        clearInterval(intervalId);
-                    }
+            results.forEach((resultItem) => {
+                const [result, status] = resultItem;
+                const listItem = $('<li>').addClass('list-group-item animate-fadein');
+                listItem.text(result); // Ensure the full string is used here
+                if (status === "Failed") {
+                    listItem.addClass('list-group-item-danger');
+                } else {
+                    listItem.addClass('list-group-item-success');
                 }
-
-                setInterval(checkCompletion, 1000);
+                $('#statusList').append(listItem);
             });
+
+            if (data.status === 'Completed' || data.status === 'Failed') {
+                $('.spinner-border').hide();
+            } else {
+                $('.spinner-border').show();
+            }
         });
+    }
+
+    $('#validationForm').submit(function(e) {
+        e.preventDefault();
+        const environment = $('#environment').val();
+        $('#statusContainer').show();
+        $('#statusText').text('Running');
+        $('#progressBar').css('width', '0%');
+        $('#statusList').empty();
+        $('.spinner-border').show();
+
+        $.ajax({
+            url: '/start_validation',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                environment
+            }),
+            success: function(response) {
+                fetchStatus();
+            },
+            error: function(error) {
+                console.error('Error starting validation:', error);
+            }
+        });
+
+        // Start polling for status updates
+        const intervalId = setInterval(fetchStatus, 2000);
+
+        // Stop polling when validation is complete
+        function checkCompletion() {
+            if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
+                clearInterval(intervalId);
+            }
+        }
+
+        setInterval(checkCompletion, 1000);
+    });
+});
     </script>
 </body>
 
