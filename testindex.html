@@ -65,6 +65,7 @@
             from {
                 opacity: 0;
             }
+
             to {
                 opacity: 1;
             }
@@ -87,14 +88,16 @@
                                 <option value="Prod">Prod</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Start Validation <i class="fas fa-play ms-2"></i></button>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Start Validation <i
+                                class="fas fa-play ms-2"></i></button>
                     </form>
                 </div>
 
                 <div class="card p-4 mt-4" id="statusContainer">
                     <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
                     <div class="progress mt-4">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar"
+                            role="progressbar" style="width: 0%;"></div>
                     </div>
                     <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
                     <div class="spinner-border text-primary" role="status">
@@ -111,11 +114,11 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             let intervalId;
 
             function fetchStatus() {
-                $.get('/status', function(data) {
+                $.get('/status', function (data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
                     let progress = 0;
@@ -134,7 +137,7 @@
                 });
             }
 
-            $('#validationForm').submit(function(e) {
+            $('#validationForm').submit(function (e) {
                 e.preventDefault();
                 const environment = $('#environment').val();
                 $.ajax({
@@ -142,13 +145,13 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ environment }),
-                    success: function(response) {
+                    success: function (response) {
                         $('#statusText').text('Running');
                         $('#statusList').empty();
                         fetchStatus();
                         intervalId = setInterval(fetchStatus, 3000);
                     },
-                    error: function(error) {
+                    error: function (error) {
                         console.error('Error starting validation:', error);
                     }
                 });
