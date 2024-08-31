@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -66,7 +65,6 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container mt-5">
         <h1>FPA IT Application Validation</h1>
@@ -92,6 +90,8 @@
 
     <script>
         $(document).ready(function () {
+            let intervalId;
+
             function fetchStatus() {
                 $.get('/status', function (data) {
                     $('#statusText').text(data.status);
@@ -106,12 +106,15 @@
                             icon = '<i class="fas fa-times-circle status-icon fail-icon"></i>';
                         }
 
-                        // Append the entire string to the list
                         const listItem = $('<li>').html(icon + result[0]);
                         $('#statusList').append(listItem);
                         progress = ((index + 1) / totalItems) * 100;
                     });
                     $('#progressBar').css('width', progress + '%');
+
+                    if (data.status === 'Completed' || data.status === 'Failed') {
+                        clearInterval(intervalId);
+                    }
                 });
             }
 
@@ -126,18 +129,14 @@
                     success: function (response) {
                         $('#statusText').text('Running');
                         $('#statusList').empty();
-                        fetchStatus();
+                        intervalId = setInterval(fetchStatus, 3000);
                     },
                     error: function (error) {
                         console.error('Error starting validation:', error);
                     }
                 });
-
-                // Start polling for status updates
-                setInterval(fetchStatus, 3000);
             });
         });
     </script>
 </body>
-
 </html>
