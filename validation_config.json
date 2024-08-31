@@ -1,8 +1,8 @@
 {
     "environments": {
-        "IT": "https://itintranet1.keybank.com/fpa/Login",
-        "QV": "https://qintranet1.keybank.com/fpa/Login",
-        "Prod": "https://intranet1.keybank.com/fpa/Login"
+        "FPA IT": "https://itintranet1.keybank.com/fpa/Login",
+        "FPA QV": "https://qintranet1.keybank.com/fpa/Login",
+        "FPA Prod": "https://intranet1.keybank.com/fpa/Login"
     },
     "tabs": {
         "Users": {
