@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPA IT Application Validation</title>
+    <title>{{ project_name }} Application Validation</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 </head>
 <body>
     <div class="container mt-5">
-        <h1>FPA IT Application Validation</h1>
+        <h1>{{ project_name }} Application Validation</h1>
         <form id="validationForm">
             <div class="form-group">
                 <label for="environment">Select Environment:</label>
@@ -29,23 +29,6 @@
 
     <script>
         $(document).ready(function() {
-            function updateStatus() {
-                $.ajax({
-                    url: '/status',
-                    type: 'GET',
-                    success: function(data) {
-                        $('#statusText').text(data.status);
-                        $('#statusList').empty();
-                        data.results.forEach(function(result) {
-                            $('#statusList').append('<li>' + result[0] + '</li>');
-                        });
-                    },
-                    error: function(error) {
-                        console.error('Error fetching status:', error);
-                    }
-                });
-            }
-
             $('#validationForm').submit(function(e) {
                 e.preventDefault();
                 const environment = $('#environment').val();
@@ -57,20 +40,32 @@
                     success: function(response) {
                         $('#statusText').text('Running');
                         $('#statusList').empty();
-                        // Start polling
-                        const intervalId = setInterval(function() {
-                            updateStatus();
-                            // Stop polling if the validation is complete
-                            if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
-                                clearInterval(intervalId);
-                            }
-                        }, 2000); // Poll every 2 seconds
+                        pollStatus();
                     },
                     error: function(error) {
                         console.error('Error starting validation:', error);
                     }
                 });
             });
+
+            function pollStatus() {
+                setInterval(function() {
+                    $.ajax({
+                        url: '/status',
+                        type: 'GET',
+                        success: function(data) {
+                            $('#statusText').text(data.status);
+                            $('#statusList').empty();
+                            data.results.forEach(function(result) {
+                                $('#statusList').append('<li>' + result[0] + '</li>');
+                            });
+                        },
+                        error: function(error) {
+                            console.error('Error fetching status:', error);
+                        }
+                    });
+                }, 3000); // Poll every 3 seconds
+            }
         });
     </script>
 </body>
