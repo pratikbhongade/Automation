@@ -1,0 +1,174 @@
+{
+    "environments": {
+        "IT": "https://itintranet1.keybank.com/fpa/Login",
+        "QV": "https://qintranet1.keybank.com/fpa/Login",
+        "Prod": "https://intranet1.keybank.com/fpa/Login"
+    },
+    "tabs": {
+        "Users": {
+            "url": "/fpa/Usr",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Active": { "script": "showList('Active', 'Usr');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Active": { "script": "showListNew('InActive', 'Usr');", "content_locator": { "type": "id", "value": "content" } },
+                "All": { "script": "showListNew('All', 'Usr');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 2
+        },
+        "User Roles": {
+            "url": "/fpa/UsrRoles",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Active": { "script": "showList('Active', 'UsrRoles');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Active": { "script": "showListNew('InActive', 'UsrRoles');", "content_locator": { "type": "id", "value": "content" } },
+                "All": { "script": "showListNew('All', 'UsrRoles');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 2
+        },
+        "Accounts": {
+            "url": "/fpa/Acct",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Active": { "script": "showList('Active', 'Acct');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Active": { "script": "showListNew('InActive', 'Acct');", "content_locator": { "type": "id", "value": "content" } },
+                "All": { "script": "showListNew('All', 'Acct');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 2
+        },
+        "GL/CC's": {
+            "url": "/fpa/GlCstCntr",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Active": { "script": "showList('Active', 'GlCstCntr');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Active": { "script": "showListNew('InActive', 'GlCstCntr');", "content_locator": { "type": "id", "value": "content" } },
+                "All": { "script": "showListNew('All', 'GlCstCntr');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 3
+        },
+        "Printers": {
+            "url": "/fpa/Printer",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Active": { "script": "showList('Active', 'Printer');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Active": { "script": "showListNew('InActive', 'Printer');", "content_locator": { "type": "id", "value": "content" } },
+                "All": { "script": "showListNew('All', 'Printer');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 2
+        },
+        "Misc. Lookups": {
+            "url": "/fpa/AdminMiscLookup",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Active": { "script": "showList('Active', 'AdminMiscLookup');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Active": { "script": "showListNew('InActive', 'AdminMiscLookup');", "content_locator": { "type": "id", "value": "content" } },
+                "All": { "script": "showListNew('All', 'AdminMiscLookup');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 2
+        },
+        "Check Mgmt.": {
+            "url": "/fpa/CheckManagement",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "History": { "script": "showList('History', 'CheckManagement');", "content_locator": { "type": "id", "value": "content" } },
+                "Search": { "script": "showList('Search', 'CheckManagement');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": 4
+        },
+        "Checks": {
+            "url": "/fpa/Check",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "New Check": { "script": "showList('NewCheck', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Requested": { "script": "showListNew('Requested', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Checks To Approve": { "script": "showListNew('ChecksToApprove', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Printed": { "script": "showList('NotPrinted', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Queue": { "script": "showListNew('Queue', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Printed": { "script": "showListNew('Printed', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Search": { "script": "showListNew('Search', 'Check');", "content_locator": { "type": "id", "value": "content" } },
+                "Reports": { "script": "showListNew('CheckToApproveReport', 'Check');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": {
+                "New Check": null,
+                "Requested": 2,
+                "Checks To Approve": 2,
+                "Not Printed": 2,
+                "Queue": 2,
+                "Printed": 4,
+                "Search": null,
+                "Reports": 2
+            }
+        },
+        "Payees": {
+            "url": "/fpa/Payee",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Search": { "script": "showList('Search', 'Payee');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": {
+                "Search": null
+            }
+        },
+        "Tax Batch": {
+            "url": "/fpa/Checkbatch",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Checks To Approve": { "script": "showList('ChecksToApprove', 'Checkbatch');", "content_locator": { "type": "id", "value": "content" } },
+                "Not Printed": { "script": "showListNew('NotPrinted', 'Checkbatch');", "content_locator": { "type": "id", "value": "content" } },
+                "Queue": { "script": "showListNew('Queue', 'Checkbatch');", "content_locator": { "type": "id", "value": "content" } },
+                "Printed": { "script": "showListNew('Printed', 'Checkbatch');", "content_locator": { "type": "id", "value": "content" } },
+                "Import Control": { "script": "window.location.href='/fpa/CheckBatchView';", "content_locator": { "type": "css", "value": "table.ListView" } }
+            },
+            "column_index": {
+                "Checks To Approve": 2,
+                "Not Printed": 2,
+                "Queue": 2,
+                "Printed": 4,
+                "Import Control": 1
+            }
+        },
+        "Positive Pay": {
+            "url": "/fpa/ExportPositivePay",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Not Exported": { "script": "showList('NotExported', 'ExportPositivePay');", "content_locator": { "type": "id", "value": "content" } },
+                "Exported": { "script": "showListNew('Exported', 'ExportPositivePay');", "content_locator": { "type": "id", "value": "content" } },
+                "Export Control": { "script": "showListNew('Control', 'ExportPositivePay');", "content_locator": { "type": "id", "value": "content" } }
+            },
+            "column_index": {
+                "Not Exported": 5,
+                "Exported": 4,
+                "Export Control": 1
+            }
+        },
+        "Export": {
+            "url": "/fpa/ExportGl",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "General Ledger": { "script": "window.location.href='/fpa/ExportGl';", "content_locator": { "type": "css", "value": "table.ListView" } },
+                "PTMS": { "script": "window.location.href='/fpa/ExportPtms';", "content_locator": { "type": "css", "value": "table.ListView" } }
+            },
+            "column_index": {
+                "General Ledger": 5,
+                "PTMS": 7
+            }
+        },
+        "Reconcile": {
+            "url": "/fpa/Reconcile",
+            "content_locator": { "type": "css", "value": "table.ListView" },
+            "sub_tabs": {
+                "Not Reconciled": { "script": "showList('NotReconciled', 'Reconcile');", "content_locator": { "type": "id", "value": "content" } },
+                "Reconciled": { "script": "showListNew('Reconciled', 'Reconcile');", "content_locator": { "type": "id", "value": "content" } },
+                "Abandoned": { "script": "showListNew('Abandoned', 'Reconcile');", "content_locator": { "type": "id", "value": "content" } },
+                "Search": { "script": "showListNew('Search', 'Reconcile');", "content_locator": { "type": "id", "value": "content" } },
+                "Import Control": { "script": "window.location.href='/fpa/ReconcileBatchView';", "content_locator": { "type": "css", "value": "table.ListView" } }
+            },
+            "column_index": {
+                "Not Reconciled": 5,
+                "Reconciled": 4,
+                "Abandoned": 5,
+                "Search": null,
+                "Import Control": 1
+            }
+        }
+    }
+}
