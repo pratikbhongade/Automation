@@ -106,8 +106,8 @@
                             icon = '<i class="fas fa-times-circle status-icon fail-icon"></i>';
                         }
 
-                        // Ensure the full message is displayed
-                        $('#statusList').append('<li>' + icon + $('<div>').text(result[0]).html() + '</li>');
+                        // Ensure the full message is displayed correctly
+                        $('#statusList').append('<li>' + icon + result[0] + '</li>');
                         progress = ((index + 1) / totalItems) * 100;
                     });
                     $('#progressBar').css('width', progress + '%');
