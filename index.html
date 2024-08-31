@@ -106,8 +106,8 @@
                             icon = '<i class="fas fa-times-circle status-icon fail-icon"></i>';
                         }
 
-                        // Use text() to safely add the full message
-                        const listItem = $('<li>').html(icon + $('<span>').text(result[0]).html());
+                        // Append the entire string to the list
+                        const listItem = $('<li>').html(icon + result[0]);
                         $('#statusList').append(listItem);
                         progress = ((index + 1) / totalItems) * 100;
                     });
