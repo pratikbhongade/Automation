@@ -1,57 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ project_name }}</title>
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 </head>
-
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card p-4">
-                    <h1 class="text-center mb-4">{{ project_name }}</h1>
-                    <form id="validationForm">
-                        <div class="form-group mb-4">
-                            <label for="environment" class="form-label">Select Environment:</label>
-                            <select class="form-select" id="environment" name="environment">
-                                <option value="IT">IT</option>
-                                <option value="QV">QV</option>
-                                <option value="Prod">Prod</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Start Validation <i class="fas fa-play ms-2"></i></button>
-                    </form>
-                </div>
-
-                <div class="card p-4 mt-4" id="statusContainer">
-                    <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
-                    <div class="progress mt-4">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
-                    </div>
-                    <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
+    <div class="container mt-5">
+        <h1>{{ project_name }}</h1>
+        <form id="validationForm">
+            <div class="form-group">
+                <label for="environment">Select Environment:</label>
+                <select class="form-control" id="environment" name="environment">
+                    <option value="IT">IT</option>
+                    <option value="QV">QV</option>
+                    <option value="Prod">Prod</option>
+                </select>
             </div>
+            <button type="submit" class="btn btn-primary">Start Validation</button>
+        </form>
+        <div class="mt-5" id="statusContainer">
+            <h2>Status: <span id="statusText">Not Started</span></h2>
+            <ul id="statusList"></ul>
         </div>
     </div>
-
-    <!-- Bootstrap 5 JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -59,26 +33,8 @@
                 $.get('/status', function(data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
-                    const results = data.results;
-                    const progress = (results.length / 14) * 100; // Adjust the divisor if needed
-                    $('#progressBar').css('width', `${progress}%`);
-
-                    results.forEach(function(result) {
-                        const [message, status] = result; // Destructure result array
-                        const listItem = $('<li>').addClass('list-group-item animate-fadein');
-                        listItem.text(message); // Use the full message
-                        if (status === "Failed") {
-                            listItem.addClass('list-group-item-danger');
-                        } else {
-                            listItem.addClass('list-group-item-success');
-                        }
-                        $('#statusList').append(listItem);
-                    });
-
-                    if (data.status === 'Completed' || data.status === 'Failed') {
-                        $('.spinner-border').hide();
-                    } else {
-                        $('.spinner-border').show();
+                    for (let result of data.results) {
+                        $('#statusList').append('<li>' + result[0] + '</li>'); // Accessing full message
                     }
                 });
             }
@@ -86,20 +42,14 @@
             $('#validationForm').submit(function(e) {
                 e.preventDefault();
                 const environment = $('#environment').val();
-                $('#statusContainer').show();
-                $('#statusText').text('Running');
-                $('#progressBar').css('width', '0%');
-                $('#statusList').empty();
-                $('.spinner-border').show();
-
                 $.ajax({
                     url: '/start_validation',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({
-                        environment
-                    }),
+                    data: JSON.stringify({ environment }),
                     success: function(response) {
+                        $('#statusText').text('Running');
+                        $('#statusList').empty();
                         fetchStatus();
                     },
                     error: function(error) {
@@ -108,20 +58,9 @@
                 });
 
                 // Start polling for status updates
-                const intervalId = setInterval(fetchStatus, 2000);
-
-                // Stop polling when validation is complete
-                function checkCompletion() {
-                    const statusText = $('#statusText').text();
-                    if (statusText === 'Completed' || statusText === 'Failed') {
-                        clearInterval(intervalId);
-                    }
-                }
-
-                setInterval(checkCompletion, 1000);
+                setInterval(fetchStatus, 3000);
             });
         });
     </script>
 </body>
-
 </html>
