@@ -1,8 +1,7 @@
 import os
-import json
 import time
 import logging
-import win32com.client as win32
+import json
 from flask import Flask, render_template, request, jsonify
 import threading
 import pythoncom
@@ -11,12 +10,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
+from email_sender import send_email  # Importing the send_email function
 
 app = Flask(__name__)
-
-# Load JSON configuration
-with open('validation_config.json') as config_file:
-    config = json.load(config_file)
 
 # Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
@@ -24,9 +20,13 @@ logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctim
 
 validation_status = {'status': 'Not Started', 'results': []}
 
+# Load configuration from JSON file
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+
 def validate_application(environment):
-    # Set the URL based on environment
-    url = config['environments'].get(environment.upper())
+    # Set the URL based on user input
+    url = config['environments'].get(environment.lower())
     if not url:
         raise ValueError("Invalid environment selected. Please choose 'IT', 'QV', or 'Prod'.")
 
@@ -47,12 +47,7 @@ def validate_application(environment):
             highlight(tab_element)
             time.sleep(1)  # Wait for 1 second before clicking the tab
             tab_element.click()
-            locator_type = content_locator['type']
-            locator_value = content_locator['value']
-            if locator_type == 'css':
-                WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, locator_value)))
-            elif locator_type == 'id':
-                WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.ID, locator_value)))
+            WebDriverWait(driver, 3).until(EC.visibility_of_element_located(content_locator))
             result = f"{index}. Main Tab '{tab_name}' opened successfully."
             print(result)
             logging.info(result)
@@ -70,12 +65,7 @@ def validate_application(environment):
         try:
             time.sleep(1)  # Wait for 1 second before clicking the sub-tab
             driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
-            locator_type = content_locator['type']
-            locator_value = content_locator['value']
-            if locator_type == 'css':
-                WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, locator_value)))
-            elif locator_type == 'id':
-                WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.ID, locator_value)))
+            WebDriverWait(driver, 3).until(EC.visibility_of_element_located(content_locator))
             result = f"{main_index}.{chr(96 + sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
             print(result)
             logging.info(result)
@@ -116,14 +106,10 @@ def validate_application(environment):
                 # Wait for 1 second before clicking the cancel button
                 time.sleep(1)
 
-                if is_export_control:
-                    cancel_button = WebDriverWait(driver, 3).until(
-                        EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.jpg']"))
-                    )
-                else:
-                    cancel_button = WebDriverWait(driver, 3).until(
-                        EC.element_to_be_clickable((By.XPATH, "//img[@src='/fpa/images/btn_cancel.gif']"))
-                    )
+                cancel_button_xpath = "//img[@src='/fpa/images/btn_cancel.jpg']" if is_export_control else "//img[@src='/fpa/images/btn_cancel.gif']"
+                cancel_button = WebDriverWait(driver, 3).until(
+                    EC.element_to_be_clickable((By.XPATH, cancel_button_xpath))
+                )
                 highlight(cancel_button)
                 time.sleep(1)  # Wait for 1 second before clicking the cancel button
                 cancel_button.click()
@@ -171,13 +157,11 @@ def validate_application(environment):
     def handle_sub_tabs(tab_name, sub_tabs, main_index):
         global all_tabs_opened
         sub_tab_results = []
-        for sub_index, (sub_tab_name, sub_tab_data) in enumerate(sub_tabs.items(), start=1):
-            sub_success = check_sub_tab(sub_tab_data['script'], sub_tab_name, sub_tab_data['content_locator'], main_index, sub_index)
+        for sub_index, (sub_tab_name, sub_tab_info) in enumerate(sub_tabs.items(), start=1):
             is_export_control = tab_name == "Positive Pay" and sub_tab_name == "Export Control"
+            sub_success = check_sub_tab(sub_tab_info['js'], sub_tab_name, sub_tab_info['locator'], main_index, sub_index)
             if sub_success:
-                column_index = config['tabs'][tab_name]['column_index']
-                if isinstance(column_index, dict):
-                    column_index = column_index.get(sub_tab_name)
+                column_index = sub_tab_info.get('index')
                 if column_index is not None:
                     first_list_element_success = validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=is_export_control)
                     if not first_list_element_success:
@@ -200,23 +184,23 @@ def validate_application(environment):
         return sub_tab_results
 
     # Check main tabs and their respective sub-tabs
-    for i, (tab_name, tab_data) in enumerate(config['tabs'].items(), start=1):
+    for i, (tab_name, tab_info) in enumerate(config['tabs'].items(), start=1):
         try:
             # Find the main tab element using its href attribute
             tab_element = WebDriverWait(driver, 3).until(
-                EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_data['url']}']"))
+                EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_info['href']}']"))
             )
             highlight(tab_element)
             time.sleep(1)  # Wait for 1 second before clicking the main tab
-            success = check_tab(tab_element, tab_name, tab_data['content_locator'], i)
+            success = check_tab(tab_element, tab_name, tab_info['locator'], i)
             if success:
                 result = f"{i}. Main Tab '{tab_name}' opened successfully."
                 print(result)
                 logging.info(result)
                 validation_results.append((result, "Success"))
 
-                if 'sub_tabs' in tab_data:
-                    sub_tab_results = handle_sub_tabs(tab_name, tab_data['sub_tabs'], i)
+                if 'sub_tabs' in tab_info:
+                    sub_tab_results = handle_sub_tabs(tab_name, tab_info['sub_tabs'], i)
                     validation_results.extend(sub_tab_results)
 
             else:
@@ -252,43 +236,6 @@ def validate_application(environment):
 
     return validation_results, all_tabs_opened
 
-# Function to send email with validation results
-def send_email(subject, validation_results, success):
-    email_body = (
-        "<html>"
-        "<body style='font-family: Arial, sans-serif;'>"
-        "<p>Hi Team,</p>"
-        "<p>Please find the validation result of <strong>FPA IT Application</strong>:</p>"
-        "<pre style='font-size: 14px; color: #333;'>"
-    )
-
-    for result, status in validation_results:
-        email_body += f"{result}\n"
-
-    email_body += "</pre>"
-    if success:
-        email_body += "<p style='font-size: 18px; color: green;'><strong>Validation Successful</strong></p>"
-    else:
-        email_body += "<p style='font-size: 18px; color: red;'><strong>Validation Failed</strong></p>"
-    email_body += (
-        "<p>Best regards,</p>"
-        "<p><strong>Your Name</strong><br>"
-        "Your Position<br>"
-        "Your Contact Information</p>"
-        "</body>"
-        "</html>"
-    )
-
-    pythoncom.CoInitialize()
-    outlook = win32.Dispatch('outlook.application')
-    mail = outlook.CreateItem(0)
-    mail.To = 'Pratik_Bhongade@keybank.com'  # Replace with the recipient email addresses
-    mail.Subject = subject
-    mail.HTMLBody = email_body
-    mail.Attachments.Add(log_file_path)  # Attach the log file
-    mail.Send()
-    pythoncom.CoUninitialize()
-
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -301,11 +248,12 @@ def start_validation():
     validation_status['results'] = []
 
     def validate_environment():
+        pythoncom.CoInitialize()
         results, success = validate_application(environment)
         validation_status['status'] = 'Completed' if success else 'Failed'
         validation_status['results'] = results
         subject = f"FPA {environment.upper()} Environment Validation Results"
-        send_email(subject, results, success)
+        send_email(subject, results, log_file_path, environment)
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
