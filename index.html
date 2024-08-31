@@ -34,7 +34,7 @@
                     </form>
                 </div>
 
-                <div class="card p-4 mt-4" id="statusContainer" style="display: none;">
+                <div class="card p-4 mt-4" id="statusContainer">
                     <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
                     <div class="progress mt-4">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
@@ -60,21 +60,20 @@
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
                     const results = data.results;
-                    const progress = (results.length / 14) * 100;
+                    const progress = (results.length / 14) * 100; // Adjust the divisor if needed
                     $('#progressBar').css('width', `${progress}%`);
 
-                    for (let i = 0; i < results.length; i++) {
-                        const result = results[i][0];
-                        const status = results[i][1];
+                    results.forEach(function(result) {
+                        const [message, status] = result; // Destructure result array
                         const listItem = $('<li>').addClass('list-group-item animate-fadein');
-                        listItem.text(result);
+                        listItem.text(message); // Use the full message
                         if (status === "Failed") {
                             listItem.addClass('list-group-item-danger');
                         } else {
                             listItem.addClass('list-group-item-success');
                         }
                         $('#statusList').append(listItem);
-                    }
+                    });
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
                         $('.spinner-border').hide();
