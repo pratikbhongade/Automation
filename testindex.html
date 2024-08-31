@@ -11,107 +11,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Custom Styles -->
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f0f2f5;
-            padding-top: 50px;
-        }
-
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-primary {
-            background-color: #4A90E2;
-            border-color: #4A90E2;
-            font-weight: bold;
-            padding: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background-color: #357ABD;
-            border-color: #357ABD;
-        }
-
-        .progress {
-            height: 25px;
-            border-radius: 15px;
-            overflow: hidden;
-            background-color: #e9ecef;
-        }
-
-        .progress-bar {
-            background-color: #4A90E2;
-            transition: width 0.4s ease;
-        }
-
-        #statusContainer {
-            display: none;
-        }
-
-        .spinner-border {
-            display: none;
-            width: 4rem;
-            height: 4rem;
-            margin-top: 20px;
-        }
-
-        .status-list-item {
-            animation: fadeInUp 0.5s ease;
-            background: #ffffff;
-            border-left: 5px solid #4A90E2;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .status-list-item-danger {
-            border-left-color: #dc3545;
-        }
-
-        .status-list-item-success {
-            border-left-color: #28a745;
-        }
-
-        .animate-fadein {
-            animation: fadeIn 1s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 
 <body>
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="card p-5">
+                <div class="card p-4">
                     <h1 class="text-center mb-4">{{ project_name }}</h1>
                     <form id="validationForm">
                         <div class="form-group mb-4">
@@ -122,18 +30,26 @@
                                 <option value="Prod">Prod</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Start Validation <i
-                                class="fas fa-play ms-2"></i></button>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Start Validation <i class="fas fa-play ms-2"></i></button>
                     </form>
                 </div>
 
-                <div class="card p-5 mt-4" id="statusContainer">
+                <div class="card p-4 mt-4" id="statusContainer">
                     <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
                     <div class="progress mt-4">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar"
-                            role="progressbar" style="width: 0%;"></div>
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
                     </div>
-                    <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
+                    <div class="table-responsive mt-4">
+                        <table class="table table-bordered table-hover" id="statusTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th scope="col">Step</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statusList"></tbody>
+                        </table>
+                    </div>
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
@@ -149,36 +65,36 @@
 
     <script>
         $(document).ready(function () {
-            let intervalId;
-
             function fetchStatus() {
                 $.get('/status', function (data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
-                    let progress = 0;
-                    let totalItems = data.results.length;
+                    const results = data.results;
+                    const progress = (results.length / 14) * 100;
+                    $('#progressBar').css('width', `${progress}%`);
 
-                    data.results.forEach((result) => {
-                        const statusText = result[0];
-                        const status = result[1];
-                        const listItem = $('<li>').addClass('list-group-item status-list-item animate-fadein');
-                        listItem.text(statusText);
+                    for (let i = 0; i < results.length; i++) {
+                        const result = results[i][0];
+                        const status = results[i][1];
+                        const row = $('<tr>');
+                        const stepCell = $('<td>').text(result);
+                        const statusCell = $('<td>').text(status);
 
                         if (status === "Failed") {
-                            listItem.addClass('status-list-item-danger');
+                            row.addClass('table-danger');
                         } else {
-                            listItem.addClass('status-list-item-success');
+                            row.addClass('table-success');
                         }
 
-                        $('#statusList').append(listItem);
-                        progress = ((data.results.indexOf(result) + 1) / totalItems) * 100;
-                    });
-
-                    $('#progressBar').css('width', progress + '%');
+                        row.append(stepCell);
+                        row.append(statusCell);
+                        $('#statusList').append(row);
+                    }
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
-                        clearInterval(intervalId);
                         $('.spinner-border').hide();
+                    } else {
+                        $('.spinner-border').show();
                     }
                 });
             }
@@ -196,15 +112,28 @@
                     url: '/start_validation',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ environment }),
+                    data: JSON.stringify({
+                        environment
+                    }),
                     success: function (response) {
                         fetchStatus();
-                        intervalId = setInterval(fetchStatus, 3000);
                     },
                     error: function (error) {
                         console.error('Error starting validation:', error);
                     }
                 });
+
+                // Start polling for status updates
+                const intervalId = setInterval(fetchStatus, 2000);
+
+                // Stop polling when validation is complete
+                function checkCompletion() {
+                    if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
+                        clearInterval(intervalId);
+                    }
+                }
+
+                setInterval(checkCompletion, 1000);
             });
         });
     </script>
