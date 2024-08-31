@@ -130,8 +130,8 @@
 
                 const listItem = $('<li>').addClass('list-group-item');
 
-                // Use plain JavaScript to set the text content
-                listItem.text(resultText);
+                // Use .html() to append the text as HTML to avoid any truncation
+                listItem.html(resultText);
 
                 if (status === "Failed") {
                     listItem.addClass('list-group-item-danger');
@@ -186,6 +186,7 @@
         setInterval(checkCompletion, 1000);
     });
 });
+
 
 
 
