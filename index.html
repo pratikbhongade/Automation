@@ -125,13 +125,13 @@
             results.forEach(function(resultItem) {
                 console.log(resultItem);  // Debug: Log the entire resultItem to see what's being passed
 
-                const resultText = resultItem[0];  // This should be the full message
+                const resultText = String(resultItem[0]);  // Ensure this is treated as a string
                 const status = resultItem[1];
 
                 const listItem = $('<li>').addClass('list-group-item');
 
-                // Use textContent to ensure the full message is set
-                listItem[0].textContent = resultText;
+                // Use plain JavaScript to set the text content
+                listItem.text(resultText);
 
                 if (status === "Failed") {
                     listItem.addClass('list-group-item-danger');
@@ -186,6 +186,7 @@
         setInterval(checkCompletion, 1000);
     });
 });
+
 
 
     </script>
