@@ -115,21 +115,29 @@
     function fetchStatus() {
         $.get('/status', function(data) {
             $('#statusText').text(data.status);
-            $('#statusList').empty();
+            $('#statusList').empty();  // Clear previous results
+
             const results = data.results;
-            const progress = (results.length / 14) * 100; // Adjust the denominator as per the number of total steps.
+            const progress = (results.length / 14) * 100; // Adjust based on your total number of steps
             $('#progressBar').css('width', `${progress}%`);
 
-            results.forEach((resultItem) => {
-                const [result, status] = resultItem;
-                const listItem = $('<li>').addClass('list-group-item animate-fadein');
-                listItem.text(result); // Ensure the full string is used here
+            // Iterate over the results and display the full string
+            results.forEach(function(resultItem) {
+                console.log(resultItem);  // Debug: Log the entire resultItem to see what's being passed
+
+                const resultText = resultItem[0];  // This should be the full message
+                const status = resultItem[1];
+
+                const listItem = $('<li>').addClass('list-group-item');
+                listItem.text(resultText);  // Set the entire message as the text
+
                 if (status === "Failed") {
                     listItem.addClass('list-group-item-danger');
                 } else {
                     listItem.addClass('list-group-item-success');
                 }
-                $('#statusList').append(listItem);
+
+                $('#statusList').append(listItem);  // Append the full message
             });
 
             if (data.status === 'Completed' || data.status === 'Failed') {
@@ -146,18 +154,16 @@
         $('#statusContainer').show();
         $('#statusText').text('Running');
         $('#progressBar').css('width', '0%');
-        $('#statusList').empty();
+        $('#statusList').empty();  // Clear the status list at the start
         $('.spinner-border').show();
 
         $.ajax({
             url: '/start_validation',
             type: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({
-                environment
-            }),
+            data: JSON.stringify({ environment }),
             success: function(response) {
-                fetchStatus();
+                fetchStatus();  // Fetch the initial status
             },
             error: function(error) {
                 console.error('Error starting validation:', error);
@@ -169,7 +175,8 @@
 
         // Stop polling when validation is complete
         function checkCompletion() {
-            if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
+            const statusText = $('#statusText').text();
+            if (statusText === 'Completed' || statusText === 'Failed') {
                 clearInterval(intervalId);
             }
         }
@@ -177,6 +184,7 @@
         setInterval(checkCompletion, 1000);
     });
 });
+
     </script>
 </body>
 
