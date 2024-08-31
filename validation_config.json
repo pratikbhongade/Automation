@@ -1,4 +1,5 @@
 {
+    "project_name": "FPA",
     "environments": {
         "FPA IT": "https://itintranet1.keybank.com/fpa/Login",
         "FPA QV": "https://qintranet1.keybank.com/fpa/Login",
