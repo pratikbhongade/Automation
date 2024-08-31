@@ -57,7 +57,7 @@
                             $('#statusText').text(data.status);
                             $('#statusList').empty();
                             data.results.forEach(function(result) {
-                                $('#statusList').append('<li>' + result[0] + '</li>');
+                                $('#statusList').append('<li>' + result + '</li>');
                             });
                         },
                         error: function(error) {
