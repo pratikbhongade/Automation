@@ -151,6 +151,7 @@
                         </div>
                         <div class="d-flex justify-content-between">
                             <button type="submit" class="btn btn-primary btn-lg">Start Validation <i class="fas fa-play ms-2"></i></button>
+                            <button type="button" id="pauseValidationButton" class="btn btn-warning btn-lg" disabled>Pause Validation <i class="fas fa-pause ms-2"></i></button>
                             <button type="button" id="stopValidationButton" class="btn btn-danger btn-lg" disabled>Stop Validation <i class="fas fa-stop ms-2"></i></button>
                         </div>
                     </form>
@@ -208,6 +209,7 @@
                     if (data.status === 'Completed' || data.status === 'Failed') {
                         clearInterval(intervalId);
                         $('#loaderContainer').hide();
+                        $('#pauseValidationButton').prop('disabled', true);
                         $('#stopValidationButton').prop('disabled', true);
                     }
                 });
@@ -221,6 +223,7 @@
                 $('#progressBar').css('width', '0%');
                 $('#statusList').empty();
                 $('#loaderContainer').show();
+                $('#pauseValidationButton').prop('disabled', false);
                 $('#stopValidationButton').prop('disabled', false);
 
                 $.ajax({
@@ -240,10 +243,20 @@
                 intervalId = setInterval(fetchStatus, 2000);
             });
 
+            $('#pauseValidationButton').click(function() {
+                $.post('/pause_validation', function(response) {
+                    console.log(response.message);
+                    $('#statusText').text('Paused');
+                    $('#pauseValidationButton').prop('disabled', true);
+                    $('#stopValidationButton').prop('disabled', false);
+                });
+            });
+
             $('#stopValidationButton').click(function() {
                 $.post('/stop_validation', function(response) {
                     console.log(response.message);
                     $('#statusText').text('Stopping...');
+                    $('#pauseValidationButton').prop('disabled', true);
                     $('#stopValidationButton').prop('disabled', true);
                 });
             });
