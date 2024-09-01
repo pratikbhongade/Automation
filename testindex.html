@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
@@ -40,12 +42,17 @@
 
                 <div class="card p-4 mt-4" id="statusContainer">
                     <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
-                    <div class="airplane-loader-container mt-4">
-                        <div class="runway">
-                            <div class="airplane"></div>
-                        </div>
+                    <div class="progress mt-4">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
                     </div>
                     <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
+                    <div class="loader-container" id="loaderContainer" style="display: none;">
+                        <div class="dot-loader"><div></div><div></div><div></div><div></div></div>
+                    </div>
+
+                    <div class="mt-4">
+                        <canvas id="statusChart" width="400" height="400"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -59,17 +66,44 @@
     <script>
         $(document).ready(function() {
             let isPaused = false;
+            let chart;
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            let chartData = {
+                labels: ['Success', 'Failed', 'Skipped'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                }]
+            };
+
+            chart = new Chart(ctx, {
+                type: 'pie',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+
+            function updateChart(success, failed, skipped) {
+                chartData.datasets[0].data = [success, failed, skipped];
+                chart.update();
+            }
 
             function fetchStatus() {
                 $.get('/status', function(data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
+                    let progress = 0;
                     let totalItems = data.results.length;
-                    let completedItems = data.results.filter(result => !result.includes('Failed')).length;
-                    let progress = (completedItems / totalItems) * 100;
 
-                    // Update airplane position based on progress
-                    $('.airplane').css('left', progress + '%');
+                    let successCount = 0;
+                    let failedCount = 0;
+                    let skippedCount = 0;
 
                     data.results.forEach((result, index) => {
                         const listItem = $('<li>').addClass('list-group-item d-flex justify-content-between align-items-center');
@@ -78,19 +112,29 @@
                         if (result.includes('Failed')) {
                             listItem.addClass('list-group-item-danger');
                             icon.removeClass('fa-check-circle').addClass('fa-times-circle');
+                            failedCount++;
+                        } else if (result.includes('Skipped')) {
+                            listItem.addClass('list-group-item-warning');
+                            icon.removeClass('fa-check-circle').addClass('fa-minus-circle');
+                            skippedCount++;
                         } else {
                             listItem.addClass('list-group-item-success');
+                            successCount++;
                         }
                         listItem.prepend(icon);
                         const statusBadge = $('<span>').addClass('badge bg-secondary rounded-pill');
                         statusBadge.text(index + 1);
                         listItem.append(statusBadge);
                         $('#statusList').append(listItem);
+                        progress = ((index + 1) / totalItems) * 100;
+                        $('#progressBar').css('width', progress + '%');
                     });
+
+                    updateChart(successCount, failedCount, skippedCount);
 
                     if (data.status === 'Completed' || data.status === 'Failed' || data.status === 'Stopped') {
                         clearInterval(intervalId);
-                        $('.airplane').css('left', '100%');
+                        $('#loaderContainer').hide();
                     }
                 });
             }
@@ -100,8 +144,9 @@
                 const environment = $('#environment').val();
                 $('#statusContainer').show();
                 $('#statusText').text('Running');
+                $('#progressBar').css('width', '0%');
                 $('#statusList').empty();
-                $('.airplane').css('left', '0%');
+                $('#loaderContainer').show();
 
                 $.ajax({
                     url: '/start_validation',
@@ -121,6 +166,7 @@
                 function checkCompletion() {
                     if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed' || $('#statusText').text() === 'Stopped') {
                         clearInterval(intervalId);
+                        $('#loaderContainer').hide();
                     }
                 }
 
@@ -146,6 +192,7 @@
             $('#stopBtn').click(function() {
                 $.post('/stop_validation', function() {
                     $('#statusText').text('Stopped');
+                    $('#loaderContainer').hide();
                 });
             });
         });
