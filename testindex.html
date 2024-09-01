@@ -131,6 +131,12 @@
         .list-group-item-danger .icon {
             color: #dc3545;
         }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
     </style>
 </head>
 
@@ -149,10 +155,18 @@
                                 <option value="Prod">Prod</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Start Validation <i class="fas fa-play ms-2"></i></button>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                Start Validation <i class="fas fa-play ms-2"></i>
+                            </button>
+                            <button id="pauseButton" class="btn btn-warning btn-lg" style="display:none;">
+                                Pause Validation <i class="fas fa-pause ms-2"></i>
+                            </button>
+                            <button id="stopButton" class="btn btn-danger btn-lg" style="display:none;">
+                                Stop Validation <i class="fas fa-stop ms-2"></i>
+                            </button>
+                        </div>
                     </form>
-                    <button id="pauseButton" class="btn btn-warning btn-lg w-100 mt-3" style="display:none;">Pause Validation</button>
-                    <button id="stopButton" class="btn btn-danger btn-lg w-100 mt-3" style="display:none;">Stop Validation</button>
                 </div>
 
                 <div class="card p-4 mt-4" id="statusContainer">
@@ -255,11 +269,13 @@
                 if (!isPaused) {
                     $.post('/pause_validation', function(response) {
                         $('#pauseButton').text('Resume Validation');
+                        $('#pauseButton i').removeClass('fa-pause').addClass('fa-play');
                         isPaused = true;
                     });
                 } else {
                     $.post('/pause_validation', function(response) {
                         $('#pauseButton').text('Pause Validation');
+                        $('#pauseButton i').removeClass('fa-play').addClass('fa-pause');
                         isPaused = false;
                     });
                 }
