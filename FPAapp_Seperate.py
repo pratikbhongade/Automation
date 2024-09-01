@@ -31,6 +31,14 @@ stop_event = threading.Event()
 
 def validate_application(environment):
     global validation_status
+
+    # Check if stop event is set before starting validation
+    if stop_event.is_set():
+        logging.info("Validation stopped before it could start.")
+        validation_status['results'].append("Validation stopped before it could start.")
+        validation_status['status'] = 'Stopped'
+        return
+
     # Set the URL based on environment
     url = config['environments'].get(environment.upper())
     if not url:
@@ -53,6 +61,9 @@ def validate_application(environment):
     def check_pause_and_stop():
         if stop_event.is_set():
             driver.quit()
+            logging.info("Validation stopped by user.")
+            validation_status['results'].append("Validation stopped by user.")
+            validation_status['status'] = 'Stopped'
             raise Exception("Validation stopped by user.")
         pause_event.wait()
 
@@ -160,6 +171,7 @@ def validate_application(environment):
         global all_tabs_opened
         sub_tab_results = []
         for sub_index, (sub_tab_name, sub_tab_data) in enumerate(sub_tabs.items(), start=1):
+            check_pause_and_stop()
             sub_success = check_sub_tab(sub_tab_data['script'], sub_tab_name, sub_tab_data['content_locator'], main_index, sub_index)
             is_export_control = tab_name == "Positive Pay" and sub_tab_name == "Export Control"
             if sub_success:
@@ -245,11 +257,14 @@ def start_validation():
     stop_event.clear()  # Ensure stop event is not active
 
     def validate_environment():
-        results, success = validate_application(environment)
-        validation_status['status'] = 'Completed' if success else 'Failed'
-        validation_status['results'] = results
-        subject = f"{project_name} {environment.upper()} Environment Validation Results"
-        send_email(subject, results, success, log_file_path)
+        try:
+            results, success = validate_application(environment)
+            validation_status['status'] = 'Completed' if success else 'Failed'
+            validation_status['results'] = results
+            subject = f"{project_name} {environment.upper()} Environment Validation Results"
+            send_email(subject, results, success, log_file_path)
+        except Exception as e:
+            logging.error(str(e))
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
