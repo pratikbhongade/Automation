@@ -28,6 +28,7 @@ validation_status = {'status': 'Not Started', 'results': []}
 pause_event = threading.Event()
 stop_event = threading.Event()
 
+
 def validate_application(environment):
     global validation_status
     # Set the URL based on environment
@@ -49,14 +50,11 @@ def validate_application(environment):
         validation_results.append((message, status))
         validation_status['results'].append(message)
 
-    # Function to handle pause and stop logic
     def check_pause_and_stop():
-        while pause_event.is_set():
-            time.sleep(1)  # Paused, wait until resumed
         if stop_event.is_set():
             driver.quit()
-            validation_status['status'] = 'Stopped'
-            raise SystemExit("Validation stopped by user.")
+            raise Exception("Validation stopped by user.")
+        pause_event.wait()
 
     # Function to highlight an element
     def highlight(element):
@@ -64,8 +62,8 @@ def validate_application(environment):
 
     # Function to check if a tab opens properly
     def check_tab(tab_element, tab_name, content_locator, index):
-        check_pause_and_stop()
         try:
+            check_pause_and_stop()
             highlight(tab_element)
             time.sleep(1)  # Wait for 1 second before clicking the tab
             tab_element.click()
@@ -85,8 +83,8 @@ def validate_application(environment):
 
     # Function to check if a sub-tab opens properly by executing JavaScript
     def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_index):
-        check_pause_and_stop()
         try:
+            check_pause_and_stop()
             time.sleep(1)  # Wait for 1 second before clicking the sub-tab
             driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
             locator_type = content_locator['type']
@@ -109,8 +107,8 @@ def validate_application(environment):
 
     # Function to validate the first list element under the specified column and click the cancel button
     def validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=False):
-        check_pause_and_stop()
         try:
+            check_pause_and_stop()
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
             if len(rows) <= 1:  # No data rows
@@ -189,8 +187,8 @@ def validate_application(environment):
 
     # Check main tabs and their respective sub-tabs
     for i, (tab_name, tab_data) in enumerate(config['tabs'].items(), start=1):
-        check_pause_and_stop()
         try:
+            check_pause_and_stop()
             # Find the main tab element using its href attribute
             tab_element = WebDriverWait(driver, 3).until(
                 EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_data['url']}']"))
@@ -231,19 +229,20 @@ def validate_application(environment):
 
     return validation_results, all_tabs_opened
 
+
 @app.route('/')
 def home():
     return render_template('index.html', project_name=project_name)
 
+
 @app.route('/start_validation', methods=['POST'])
 def start_validation():
-    global pause_event, stop_event
     data = request.json
     environment = data.get('environment')
     validation_status['status'] = 'Running'
     validation_status['results'] = []
-    pause_event.clear()
-    stop_event.clear()
+    pause_event.set()  # Ensure pause event is not active
+    stop_event.clear()  # Ensure stop event is not active
 
     def validate_environment():
         results, success = validate_application(environment)
@@ -256,25 +255,29 @@ def start_validation():
     thread.start()
     return jsonify({"message": "Validation started"}), 202
 
+
 @app.route('/pause_validation', methods=['POST'])
 def pause_validation():
-    global pause_event
     if pause_event.is_set():
-        pause_event.clear()  # Resume the validation
-        return jsonify({"message": "Validation resumed"}), 200
-    else:
-        pause_event.set()  # Pause the validation
+        pause_event.clear()  # Pause the validation
         return jsonify({"message": "Validation paused"}), 200
+    else:
+        pause_event.set()  # Resume the validation
+        return jsonify({"message": "Validation resumed"}), 200
+
 
 @app.route('/stop_validation', methods=['POST'])
 def stop_validation():
-    global stop_event
     stop_event.set()  # Stop the validation
-    return jsonify({"message": "Validation stopping"}), 200
+    pause_event.set()  # Resume if paused so it can stop
+    validation_status['status'] = 'Stopped'
+    return jsonify({"message": "Validation stopped"}), 200
+
 
 @app.route('/status')
 def status():
     return jsonify(validation_status)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
