@@ -2,15 +2,15 @@ import os
 import json
 import time
 import logging
-from flask import Flask, render_template, request, jsonify
 import threading
 import pythoncom
+from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
-from email_sender import send_email
+from email_sender import send_email  # Assuming you've moved the email logic to a separate module
 
 app = Flask(__name__)
 
@@ -18,34 +18,28 @@ app = Flask(__name__)
 with open('validation_config.json') as config_file:
     config = json.load(config_file)
 
-project_name = config['project_name']
-
 # Set up logging
 log_file_path = os.path.join(os.getcwd(), 'validation.log')
 logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
 validation_status = {'status': 'Not Started', 'results': []}
+hold_requested = False
+stop_requested = False
 
 def validate_application(environment):
-    global validation_status
+    global hold_requested, stop_requested
+
     # Set the URL based on environment
     url = config['environments'].get(environment.upper())
     if not url:
         raise ValueError("Invalid environment selected. Please choose 'IT', 'QV', or 'Prod'.")
 
     logging.info(f"Selected environment: {environment}")
-    validation_status['results'].append(f"Selected environment: {environment}")
 
     # Initialize Edge WebDriver
     driver = webdriver.Edge()  # This will use the Edge WebDriver in your PATH
 
     validation_results = []
-
-    def log_and_update_status(message, status="Success"):
-        print(message)
-        logging.info(message)
-        validation_results.append((message, status))
-        validation_status['results'].append(message)
 
     # Function to highlight an element
     def highlight(element):
@@ -53,6 +47,8 @@ def validate_application(environment):
 
     # Function to check if a tab opens properly
     def check_tab(tab_element, tab_name, content_locator, index):
+        if stop_requested:
+            return False
         try:
             highlight(tab_element)
             time.sleep(1)  # Wait for 1 second before clicking the tab
@@ -64,16 +60,26 @@ def validate_application(environment):
             elif locator_type == 'id':
                 WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.ID, locator_value)))
             result = f"{index}. Main Tab '{tab_name}' opened successfully."
-            log_and_update_status(result)
+            print(result)
+            logging.info(result)
+            validation_results.append(result)
             return True
         except TimeoutException:
             result = f"{index}. Failed to open Main Tab '{tab_name}'."
-            log_and_update_status(result, "Failed")
+            print(result)
+            logging.error(result)
+            validation_results.append(result)
             return False
 
     # Function to check if a sub-tab opens properly by executing JavaScript
     def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_index):
+        if stop_requested:
+            return False
         try:
+            if hold_requested:
+                while hold_requested and not stop_requested:
+                    time.sleep(1)  # Wait while on hold
+
             time.sleep(1)  # Wait for 1 second before clicking the sub-tab
             driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
             locator_type = content_locator['type']
@@ -83,25 +89,35 @@ def validate_application(environment):
             elif locator_type == 'id':
                 WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.ID, locator_value)))
             result = f"{main_index}.{chr(96 + sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
-            log_and_update_status(result)
+            print(result)
+            logging.info(result)
+            validation_results.append(result)
             return True
         except TimeoutException:
             result = f"{main_index}.{chr(96 + sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
-            log_and_update_status(result, "Failed")
+            print(result)
+            logging.error(result)
+            validation_results.append(result)
             return False
         except JavascriptException as e:
             result = f"{main_index}.{chr(96 + sub_index)}. JavaScript error on Sub Tab '{sub_tab_name}': {e}"
-            log_and_update_status(result, "Failed")
+            print(result)
+            logging.error(result)
+            validation_results.append(result)
             return False
 
     # Function to validate the first list element under the specified column and click the cancel button
     def validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=False):
+        if stop_requested:
+            return False
         try:
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
             if len(rows) <= 1:  # No data rows
                 result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_index}' to check so skipping."
-                log_and_update_status(result, "Skipped")
+                print(result)
+                logging.info(result)
+                validation_results.append(result)
                 return True
 
             try:
@@ -129,17 +145,16 @@ def validate_application(environment):
                 return True
             except NoSuchElementException:
                 result = f"{main_index}.{chr(96 + sub_index)}. There is no first element in the sub tab '{sub_index}' to click so skipping."
-                log_and_update_status(result, "Skipped")
+                print(result)
+                logging.info(result)
+                validation_results.append(result)
                 return True
         except (TimeoutException, NoSuchElementException) as e:
             result = f"{main_index}.{chr(96 + sub_index)}. Failed to open the first list element. Exception: {e}"
-            log_and_update_status(result, "Failed")
+            print(result)
+            logging.error(result)
+            validation_results.append(result)
             return False
-
-    # Navigate to the webpage containing the tabs
-    driver.get(url)  # Use the URL based on user input
-    logging.info(f"Navigated to {url}")
-    validation_status['results'].append(f"Navigated to {url}")
 
     all_tabs_opened = True
 
@@ -148,6 +163,8 @@ def validate_application(environment):
         global all_tabs_opened
         sub_tab_results = []
         for sub_index, (sub_tab_name, sub_tab_data) in enumerate(sub_tabs.items(), start=1):
+            if stop_requested:
+                break
             sub_success = check_sub_tab(sub_tab_data['script'], sub_tab_name, sub_tab_data['content_locator'], main_index, sub_index)
             is_export_control = tab_name == "Positive Pay" and sub_tab_name == "Export Control"
             if sub_success:
@@ -160,21 +177,25 @@ def validate_application(environment):
                         all_tabs_opened = False
                 else:
                     result = f"{main_index}.{chr(96 + sub_index)}. There is no data in the sub tab '{sub_tab_name}' to check so skipping."
-                    log_and_update_status(result, "Skipped")
+                    print(result)
+                    logging.info(result)
+                    validation_results.append(result)
             else:
                 all_tabs_opened = False
 
             if sub_success:
                 result = f"{main_index}.{chr(96 + sub_index)}. Sub Tab '{sub_tab_name}' opened successfully."
-                sub_tab_results.append((result, "Success"))
+                sub_tab_results.append(result)
             else:
                 result = f"{main_index}.{chr(96 + sub_index)}. Failed to open Sub Tab '{sub_tab_name}'."
-                sub_tab_results.append((result, "Failed"))
+                sub_tab_results.append(result)
 
         return sub_tab_results
 
     # Check main tabs and their respective sub-tabs
     for i, (tab_name, tab_data) in enumerate(config['tabs'].items(), start=1):
+        if stop_requested:
+            break
         try:
             # Find the main tab element using its href attribute
             tab_element = WebDriverWait(driver, 3).until(
@@ -185,7 +206,9 @@ def validate_application(environment):
             success = check_tab(tab_element, tab_name, tab_data['content_locator'], i)
             if success:
                 result = f"{i}. Main Tab '{tab_name}' opened successfully."
-                log_and_update_status(result)
+                print(result)
+                logging.info(result)
+                validation_results.append(result)
 
                 if 'sub_tabs' in tab_data:
                     sub_tab_results = handle_sub_tabs(tab_name, tab_data['sub_tabs'], i)
@@ -193,12 +216,16 @@ def validate_application(environment):
 
             else:
                 result = f"{i}. Failed to open Main Tab '{tab_name}'."
-                log_and_update_status(result, "Failed")
+                print(result)
+                logging.error(result)
+                validation_results.append(result)
                 all_tabs_opened = False
 
         except (TimeoutException, NoSuchElementException) as e:
             result = f"{i}. Main Tab '{tab_name}' not found or not clickable. Exception: {e}"
-            log_and_update_status(result, "Failed")
+            print(result)
+            logging.error(result)
+            validation_results.append(result)
             all_tabs_opened = False
 
     # Wait for 1 second before closing the browser
@@ -207,21 +234,36 @@ def validate_application(environment):
     driver.quit()
 
     # Print completion message if all tabs opened successfully
-    if all_tabs_opened:
-        result = ("Validation completed successfully.", "Success")
-        log_and_update_status(result[0])
+    if all_tabs_opened and not stop_requested:
+        result = "Validation completed successfully."
+        print(result)
+        logging.info(result)
+        validation_results.append(result)
+        success = True
+    elif stop_requested:
+        result = "Validation was stopped."
+        print(result)
+        logging.info(result)
+        validation_results.append(result)
+        success = False
     else:
-        result = ("Validation failed.", "Failed")
-        log_and_update_status(result[0], "Failed")
+        result = "Validation failed."
+        print(result)
+        logging.error(result)
+        validation_results.append(result)
+        success = False
 
-    return validation_results, all_tabs_opened
+    return validation_results, success
 
 @app.route('/')
 def home():
-    return render_template('index.html', project_name=project_name)
+    return render_template('index.html')
 
 @app.route('/start_validation', methods=['POST'])
 def start_validation():
+    global hold_requested, stop_requested
+    hold_requested = False
+    stop_requested = False
     data = request.json
     environment = data.get('environment')
     validation_status['status'] = 'Running'
@@ -231,12 +273,24 @@ def start_validation():
         results, success = validate_application(environment)
         validation_status['status'] = 'Completed' if success else 'Failed'
         validation_status['results'] = results
-        subject = f"{project_name} {environment.upper()} Environment Validation Results"
-        send_email(subject, results, success, log_file_path)
+        subject = f"{config['project_name']} {environment.upper()} Environment Validation Results"
+        send_email(subject, results, success)
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
     return jsonify({"message": "Validation started"}), 202
+
+@app.route('/hold_validation', methods=['POST'])
+def hold_validation():
+    global hold_requested
+    hold_requested = not hold_requested
+    return jsonify({"message": "Hold toggled", "hold": hold_requested}), 200
+
+@app.route('/stop_validation', methods=['POST'])
+def stop_validation():
+    global stop_requested
+    stop_requested = True
+    return jsonify({"message": "Validation stopped"}), 200
 
 @app.route('/status')
 def status():
