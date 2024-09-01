@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <!-- Tooltip and Progress Bar CSS -->
+    <!-- Tooltip, Buttons, and Progress Bar CSS -->
     <style>
         body {
             background-color: #f4f4f4;
@@ -31,39 +31,51 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
 
-        .btn {
-            transition: background-color 0.3s, transform 0.3s;
+        .form-label {
+            font-weight: bold;
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
+        .form-select option {
+            font-weight: bold;
         }
 
-        .btn-primary {
-            background: linear-gradient(45deg, #007bff, #0056b3);
+        .btn-hover {
+            width: 200px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            margin: 10px;
+            height: 55px;
+            text-align: center;
             border: none;
+            background-size: 300% 100%;
+            border-radius: 50px;
+            transition: all 0.4s ease-in-out;
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(45deg, #0056b3, #003d80);
+        .btn-hover:hover {
+            background-position: 100% 0;
+            transition: all 0.4s ease-in-out;
         }
 
-        .btn-warning {
-            background: linear-gradient(45deg, #ffc107, #e0a800);
-            border: none;
+        .btn-hover:focus {
+            outline: none;
         }
 
-        .btn-warning:hover {
-            background: linear-gradient(45deg, #e0a800, #c69500);
+        .color-start {
+            background-image: linear-gradient(to right, #25aae1, #40e495, #30dd8a, #2bb673);
+            box-shadow: 0 4px 15px 0 rgba(49, 196, 190, 0.75);
         }
 
-        .btn-danger {
-            background: linear-gradient(45deg, #dc3545, #a71d2a);
-            border: none;
+        .color-pause {
+            background-image: linear-gradient(to right, #f5ce62, #e43603, #fa7199, #e85a19);
+            box-shadow: 0 4px 15px 0 rgba(229, 66, 10, 0.75);
         }
 
-        .btn-danger:hover {
-            background: linear-gradient(45deg, #a71d2a, #721c24);
+        .color-stop {
+            background-image: linear-gradient(to right, #dc3545, #a71d2a, #721c24);
+            box-shadow: 0 4px 15px 0 rgba(229, 66, 10, 0.75);
         }
 
         .progress-bar {
@@ -218,9 +230,9 @@
                             </select>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <button type="submit" class="btn btn-primary btn-lg" data-bs-toggle="tooltip" data-bs-placement="top" title="Start the validation process">Start Validation <i class="fas fa-play ms-2"></i></button>
-                            <button type="button" id="pauseBtn" class="btn btn-warning btn-lg" data-bs-toggle="tooltip" data-bs-placement="top" title="Pause the validation process">Pause Validation <i class="fas fa-pause ms-2"></i></button>
-                            <button type="button" id="stopBtn" class="btn btn-danger btn-lg" data-bs-toggle="tooltip" data-bs-placement="top" title="Stop the validation process">Stop Validation <i class="fas fa-stop ms-2"></i></button>
+                            <button type="submit" class="btn-hover color-start" data-bs-toggle="tooltip" data-bs-placement="top" title="Start the validation process">Start Validation <i class="fas fa-play ms-2"></i></button>
+                            <button type="button" id="pauseBtn" class="btn-hover color-pause" data-bs-toggle="tooltip" data-bs-placement="top" title="Pause the validation process">Pause Validation <i class="fas fa-pause ms-2"></i></button>
+                            <button type="button" id="stopBtn" class="btn-hover color-stop" data-bs-toggle="tooltip" data-bs-placement="top" title="Stop the validation process">Stop Validation <i class="fas fa-stop ms-2"></i></button>
                         </div>
                     </form>
                 </div>
@@ -236,12 +248,11 @@
                     </div>
                 </div>
             </div>
-
             <!-- Right Column -->
             <div class="col-md-4">
                 <div class="card p-4">
-                    <h2 class="text-center">Validation Summary</h2>
-                    <canvas id="statusChart" width="400" height="400"></canvas>
+                    <h2 class="text-center">Validation Progress</h2>
+                    <canvas id="statusChart"></canvas>
                 </div>
             </div>
         </div>
