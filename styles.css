@@ -12,12 +12,12 @@ body {
     background: white;
     margin-top: 50px;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 
-h1 {
+h1, h2 {
     text-align: center;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 form {
@@ -34,45 +34,72 @@ label, select, button {
 button {
     padding: 10px 20px;
     font-size: 1em;
-    background-color: #28a745;
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
-    background-color: #218838;
+    background-color: #0056b3;
 }
 
 #status-container {
     margin-top: 30px;
 }
 
-.table {
-    margin-top: 20px;
+.progress {
+    height: 30px;
 }
 
-.table thead {
-    background-color: #343a40;
-    color: white;
+.list-group-item {
+    border: none;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s ease;
 }
 
-.table-success {
+.list-group-item.elegant-list-item {
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.list-group-item.elegant-list-item:hover {
+    transform: translateY(-5px);
+}
+
+.list-group-item-success {
     background-color: #d4edda;
+    color: #155724;
 }
 
-.table-danger {
+.list-group-item-danger {
     background-color: #f8d7da;
+    color: #721c24;
 }
 
-.progress-bar {
-    height: 25px;
+.animate-fadein {
+    animation: fadein 0.5s ease-in-out;
+}
+
+@keyframes fadein {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .spinner-border {
-    margin-top: 20px;
     display: block;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 20px auto;
 }
