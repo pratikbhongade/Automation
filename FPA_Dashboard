@@ -275,18 +275,16 @@ app.layout = dbc.Container([
     ]),
     dbc.Row([
         dbc.Col([
-            dbc.FormGroup([
-                dbc.Label("Select Environment:"),
-                dcc.Dropdown(
-                    id='environment-dropdown',
-                    options=[
-                        {'label': 'IT', 'value': 'IT'},
-                        {'label': 'QV', 'value': 'QV'},
-                        {'label': 'Prod', 'value': 'Prod'},
-                    ],
-                    value='IT'
-                )
-            ]),
+            dbc.Label("Select Environment:"),
+            dcc.Dropdown(
+                id='environment-dropdown',
+                options=[
+                    {'label': 'IT', 'value': 'IT'},
+                    {'label': 'QV', 'value': 'QV'},
+                    {'label': 'Prod', 'value': 'Prod'},
+                ],
+                value='IT'
+            ),
             dbc.Button("Start Validation", id="start-button", color="primary", className="w-100 mb-4"),
             html.Div(id="status-output"),
         ])
@@ -320,7 +318,6 @@ def start_validation(n_clicks, environment):
     if n_clicks is None:
         return "", 0, "", []
     
-    # Start the validation process
     run_validation(environment)
     
     status_output = f"Validation started for {environment} environment."
@@ -339,7 +336,7 @@ def start_validation(n_clicks, environment):
 )
 def update_progress(progress):
     results = validation_status['results']
-    total_steps = 14  # Adjust according to the number of steps in the validation
+    total_steps = 14
     completed_steps = len(results)
     progress_value = int((completed_steps / total_steps) * 100)
     progress_label = f"{progress_value}%"
