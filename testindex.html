@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ project_name }}</title>
+    <title>FPA Validation</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
@@ -68,12 +68,15 @@
 
         .progress-bar {
             background: linear-gradient(45deg, #007bff, #00c6ff);
-            animation: animate-bar 2s linear infinite;
+            transition: width 1s ease-in-out;
         }
 
-        @keyframes animate-bar {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 100% 50%; }
+        .dot-loader-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            height: 100px;
         }
 
         .dot-loader {
@@ -146,7 +149,6 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 10px;
-            animation: fadeIn 0.5s ease-in-out;
             display: flex;
             align-items: center;
             background: linear-gradient(135deg, #f4f4f4, #e0e0e0);
@@ -154,18 +156,6 @@
 
         .list-group-item .icon {
             margin-right: 15px;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .list-group-item-success {
@@ -203,6 +193,11 @@
         .tooltip-arrow {
             border-bottom-color: #007bff !important;
         }
+
+        .disabled-list {
+            pointer-events: none;
+            opacity: 0.5;
+        }
     </style>
 </head>
 
@@ -212,7 +207,7 @@
             <!-- Left Column -->
             <div class="col-md-8">
                 <div class="card p-4 mb-4">
-                    <h1 class="text-center mb-4">{{ project_name }}</h1>
+                    <h1 class="text-center mb-4">FPA Validation</h1>
                     <form id="validationForm">
                         <div class="form-group mb-4">
                             <label for="environment" class="form-label" data-bs-toggle="tooltip" data-bs-placement="right" title="Select the environment for validation">Select Environment:</label>
@@ -236,7 +231,7 @@
                         <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" role="progressbar" style="width: 0%;"></div>
                     </div>
                     <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
-                    <div class="loader-container" id="loaderContainer" style="display: none;">
+                    <div class="dot-loader-container" id="loaderContainer" style="display: none;">
                         <div class="dot-loader"><div></div><div></div><div></div><div></div></div>
                     </div>
                 </div>
@@ -260,7 +255,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('[data-bs-toggle="tooltip"]').tooltip();
             let isPaused = false;
             let chart;
@@ -292,7 +287,7 @@
             }
 
             function fetchStatus() {
-                $.get('/status', function(data) {
+                $.get('/status', function (data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
                     let progress = 0;
@@ -332,11 +327,12 @@
                     if (data.status === 'Completed' || data.status === 'Failed' || data.status === 'Stopped') {
                         clearInterval(intervalId);
                         $('#loaderContainer').hide();
+                        $('.list-group-item').removeClass('animate-fadein');
                     }
                 });
             }
 
-            $('#validationForm').submit(function(e) {
+            $('#validationForm').submit(function (e) {
                 e.preventDefault();
                 const environment = $('#environment').val();
                 $('#statusContainer').show();
@@ -350,10 +346,10 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ environment }),
-                    success: function(response) {
+                    success: function (response) {
                         fetchStatus();
                     },
-                    error: function(error) {
+                    error: function (error) {
                         console.error('Error starting validation:', error);
                     }
                 });
@@ -364,21 +360,22 @@
                     if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed' || $('#statusText').text() === 'Stopped') {
                         clearInterval(intervalId);
                         $('#loaderContainer').hide();
+                        $('.list-group-item').removeClass('animate-fadein');
                     }
                 }
 
                 setInterval(checkCompletion, 1000);
             });
 
-            $('#pauseBtn').click(function() {
+            $('#pauseBtn').click(function () {
                 if (isPaused) {
-                    $.post('/pause_resume_validation', function() {
+                    $.post('/pause_resume_validation', function () {
                         $('#pauseBtn').html('Pause Validation <i class="fas fa-pause ms-2"></i>').removeClass('btn-success').addClass('btn-warning');
                         $('#statusText').text('Running');
                         isPaused = false;
                     });
                 } else {
-                    $.post('/pause_resume_validation', function() {
+                    $.post('/pause_resume_validation', function () {
                         $('#pauseBtn').html('Resume Validation <i class="fas fa-play ms-2"></i>').removeClass('btn-warning').addClass('btn-success');
                         $('#statusText').text('Paused');
                         isPaused = true;
@@ -386,10 +383,11 @@
                 }
             });
 
-            $('#stopBtn').click(function() {
-                $.post('/stop_validation', function() {
+            $('#stopBtn').click(function () {
+                $.post('/stop_validation', function () {
                     $('#statusText').text('Stopped');
                     $('#loaderContainer').hide();
+                    $('.list-group-item').removeClass('animate-fadein');
                 });
             });
         });
