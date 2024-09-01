@@ -259,13 +259,17 @@ def start_validation():
 @app.route('/pause_validation', methods=['POST'])
 def pause_validation():
     global pause_event
-    pause_event.set()
-    return jsonify({"message": "Validation paused"}), 200
+    if pause_event.is_set():
+        pause_event.clear()  # Resume the validation
+        return jsonify({"message": "Validation resumed"}), 200
+    else:
+        pause_event.set()  # Pause the validation
+        return jsonify({"message": "Validation paused"}), 200
 
 @app.route('/stop_validation', methods=['POST'])
 def stop_validation():
     global stop_event
-    stop_event.set()
+    stop_event.set()  # Stop the validation
     return jsonify({"message": "Validation stopping"}), 200
 
 @app.route('/status')
