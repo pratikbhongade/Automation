@@ -54,34 +54,28 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             function fetchStatus() {
-                $.get('/status', function (data) {
+                $.get('/status', function(data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
-                    const results = data.results;
-                    const progress = (results.length / 14) * 100;
-                    $('#progressBar').css('width', `${progress}%`);
+                    let progress = 0;
+                    let totalItems = data.results.length;
 
-                    for (let i = 0; i < results.length; i++) {
-                        const result = results[i][0];
-                        const status = results[i][1];
-                        const listItem = $('<li>').addClass('list-group-item elegant-list-item animate-fadein');
-                        listItem.html(
-                            `<i class="fas ${status === 'Failed' ? 'fa-times-circle text-danger' : 'fa-check-circle text-success'} me-2"></i>${result}`
-                        );
-                        $('#statusList').append(listItem);
-                    }
+                    data.results.forEach((result, index) => {
+                        $('#statusList').append('<li>' + result[0] + '</li>');
+                        progress = ((index + 1) / totalItems) * 100;
+                        $('#progressBar').css('width', progress + '%');
+                    });
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
+                        clearInterval(intervalId);
                         $('.spinner-border').hide();
-                    } else {
-                        $('.spinner-border').show();
                     }
                 });
             }
 
-            $('#validationForm').submit(function (e) {
+            $('#validationForm').submit(function(e) {
                 e.preventDefault();
                 const environment = $('#environment').val();
                 $('#statusContainer').show();
@@ -95,25 +89,16 @@
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ environment }),
-                    success: function (response) {
+                    success: function(response) {
                         fetchStatus();
                     },
-                    error: function (error) {
+                    error: function(error) {
                         console.error('Error starting validation:', error);
                     }
                 });
 
                 // Start polling for status updates
                 const intervalId = setInterval(fetchStatus, 2000);
-
-                // Stop polling when validation is complete
-                function checkCompletion() {
-                    if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
-                        clearInterval(intervalId);
-                    }
-                }
-
-                setInterval(checkCompletion, 1000);
             });
         });
     </script>
