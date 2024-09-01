@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <!-- Loader CSS -->
+    <!-- Loader and List Item CSS -->
     <style>
         .loader-container {
             display: flex;
@@ -87,6 +87,50 @@
                 transform: translate(24px, 0);
             }
         }
+
+        .list-group-item {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            animation: fadeIn 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #f4f4f4, #e0e0e0);
+        }
+
+        .list-group-item .icon {
+            margin-right: 15px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .list-group-item-success {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+        }
+
+        .list-group-item-danger {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+        }
+
+        .list-group-item-success .icon {
+            color: #28a745;
+        }
+
+        .list-group-item-danger .icon {
+            color: #dc3545;
+        }
     </style>
 </head>
 
@@ -139,12 +183,15 @@
 
                     data.results.forEach((result, index) => {
                         const listItem = $('<li>').addClass('list-group-item d-flex justify-content-between align-items-center');
+                        const icon = $('<i>').addClass('fas fa-check-circle icon');
                         listItem.text(result);
                         if (result.includes('Failed')) {
                             listItem.addClass('list-group-item-danger');
+                            icon.removeClass('fa-check-circle').addClass('fa-times-circle');
                         } else {
                             listItem.addClass('list-group-item-success');
                         }
+                        listItem.prepend(icon);
                         const statusBadge = $('<span>').addClass('badge bg-secondary rounded-pill');
                         statusBadge.text(index + 1);
                         listItem.append(statusBadge);
