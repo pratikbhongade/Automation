@@ -40,13 +40,12 @@
 
                 <div class="card p-4 mt-4" id="statusContainer">
                     <h2 class="text-center">Status: <span id="statusText">Not Started</span></h2>
-                    <div class="progress mt-4">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
+                    <div class="airplane-loader-container mt-4">
+                        <div class="runway">
+                            <div class="airplane"></div>
+                        </div>
                     </div>
                     <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
-                    <div class="loader-container" id="loaderContainer" style="display: none;">
-                        <div class="dot-loader"><div></div><div></div><div></div><div></div></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -65,8 +64,12 @@
                 $.get('/status', function(data) {
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
-                    let progress = 0;
                     let totalItems = data.results.length;
+                    let completedItems = data.results.filter(result => !result.includes('Failed')).length;
+                    let progress = (completedItems / totalItems) * 100;
+
+                    // Update airplane position based on progress
+                    $('.airplane').css('left', progress + '%');
 
                     data.results.forEach((result, index) => {
                         const listItem = $('<li>').addClass('list-group-item d-flex justify-content-between align-items-center');
@@ -83,13 +86,11 @@
                         statusBadge.text(index + 1);
                         listItem.append(statusBadge);
                         $('#statusList').append(listItem);
-                        progress = ((index + 1) / totalItems) * 100;
-                        $('#progressBar').css('width', progress + '%');
                     });
 
                     if (data.status === 'Completed' || data.status === 'Failed' || data.status === 'Stopped') {
                         clearInterval(intervalId);
-                        $('#loaderContainer').hide();
+                        $('.airplane').css('left', '100%');
                     }
                 });
             }
@@ -99,9 +100,8 @@
                 const environment = $('#environment').val();
                 $('#statusContainer').show();
                 $('#statusText').text('Running');
-                $('#progressBar').css('width', '0%');
                 $('#statusList').empty();
-                $('#loaderContainer').show();
+                $('.airplane').css('left', '0%');
 
                 $.ajax({
                     url: '/start_validation',
@@ -121,7 +121,6 @@
                 function checkCompletion() {
                     if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed' || $('#statusText').text() === 'Stopped') {
                         clearInterval(intervalId);
-                        $('#loaderContainer').hide();
                     }
                 }
 
@@ -147,7 +146,6 @@
             $('#stopBtn').click(function() {
                 $.post('/stop_validation', function() {
                     $('#statusText').text('Stopped');
-                    $('#loaderContainer').hide();
                 });
             });
         });
