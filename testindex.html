@@ -250,12 +250,12 @@
             });
 
             $('#pauseBtn').click(function() {
-                const pauseText = isPaused ? 'Resume' : 'Pause';
+                const pauseText = isPaused ? 'Pause' : 'Resume';
                 const buttonClass = isPaused ? 'btn-warning' : 'btn-success';
                 const iconClass = isPaused ? 'fa-pause' : 'fa-play';
 
                 $.ajax({
-                    url: '/pause_validation',
+                    url: '/pause_resume_validation',
                     type: 'POST',
                     success: function(response) {
                         $('#pauseBtn').text(pauseText).toggleClass('btn-warning btn-success').html(`${pauseText} <i class="fas ${iconClass} ms-2"></i>`);
