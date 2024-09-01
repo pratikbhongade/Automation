@@ -39,16 +39,8 @@
                     <div class="progress mt-4">
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
                     </div>
-                    <table class="table table-striped mt-4">
-                        <thead>
-                            <tr>
-                                <th>Step</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="statusList"></tbody>
-                    </table>
-                    <div class="spinner-border text-primary mt-3" role="status">
+                    <ul id="statusList" class="list-group list-group-flush mt-4 elegant-status-list"></ul>
+                    <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
@@ -68,20 +60,18 @@
                     $('#statusText').text(data.status);
                     $('#statusList').empty();
                     const results = data.results;
-                    const totalItems = 14;  // Adjust based on the actual number of steps
-                    let progress = 0;
+                    const progress = (results.length / 14) * 100;
+                    $('#progressBar').css('width', `${progress}%`);
 
-                    results.forEach((result) => {
-                        const status = result[1];
-                        const listItem = `<tr><td>${result[0]}</td><td>${status}</td></tr>`;
-
-                        // Append the table row to the table body
+                    for (let i = 0; i < results.length; i++) {
+                        const result = results[i][0];
+                        const status = results[i][1];
+                        const listItem = $('<li>').addClass('list-group-item elegant-list-item animate-fadein');
+                        listItem.html(
+                            `<i class="fas ${status === 'Failed' ? 'fa-times-circle text-danger' : 'fa-check-circle text-success'} me-2"></i>${result}`
+                        );
                         $('#statusList').append(listItem);
-
-                        // Calculate and update the progress bar width
-                        progress = ((data.results.indexOf(result) + 1) / totalItems) * 100;
-                        $('#progressBar').css('width', `${progress}%`);
-                    });
+                    }
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
                         $('.spinner-border').hide();
@@ -104,9 +94,7 @@
                     url: '/start_validation',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({
-                        environment
-                    }),
+                    data: JSON.stringify({ environment }),
                     success: function (response) {
                         fetchStatus();
                     },
