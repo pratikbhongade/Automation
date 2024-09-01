@@ -13,6 +13,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Loader CSS -->
+    <style>
+        .loader {
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #6610f2, #6f42c1);
+            background-size: 200% 200%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -40,9 +64,7 @@
                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" id="progressBar" role="progressbar" style="width: 0%;"></div>
                     </div>
                     <ul id="statusList" class="list-group list-group-flush mt-4"></ul>
-                    <div class="spinner-border text-primary" role="status" style="display: none;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+                    <div class="loader mt-4" id="lineLoader" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -80,7 +102,7 @@
 
                     if (data.status === 'Completed' || data.status === 'Failed') {
                         clearInterval(intervalId);
-                        $('.spinner-border').hide();
+                        $('#lineLoader').hide();
                     }
                 });
             }
@@ -92,7 +114,7 @@
                 $('#statusText').text('Running');
                 $('#progressBar').css('width', '0%');
                 $('#statusList').empty();
-                $('.spinner-border').show();
+                $('#lineLoader').show();
 
                 $.ajax({
                     url: '/start_validation',
@@ -109,6 +131,16 @@
 
                 // Start polling for status updates
                 const intervalId = setInterval(fetchStatus, 2000);
+
+                // Stop polling when validation is complete
+                function checkCompletion() {
+                    if ($('#statusText').text() === 'Completed' || $('#statusText').text() === 'Failed') {
+                        clearInterval(intervalId);
+                        $('#lineLoader').hide();
+                    }
+                }
+
+                setInterval(checkCompletion, 1000);
             });
         });
     </script>
