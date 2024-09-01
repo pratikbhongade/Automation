@@ -32,8 +32,8 @@
                         </div>
                         <div class="d-flex justify-content-between">
                             <button type="submit" class="btn btn-primary btn-lg">Start Validation <i class="fas fa-play ms-2"></i></button>
-                            <button type="button" id="pauseBtn" class="btn btn-warning btn-lg">Pause <i class="fas fa-pause ms-2"></i></button>
-                            <button type="button" id="stopBtn" class="btn btn-danger btn-lg">Stop <i class="fas fa-stop ms-2"></i></button>
+                            <button type="button" id="pauseBtn" class="btn btn-warning btn-lg">Pause Validation <i class="fas fa-pause ms-2"></i></button>
+                            <button type="button" id="stopBtn" class="btn btn-danger btn-lg">Stop Validation <i class="fas fa-stop ms-2"></i></button>
                         </div>
                     </form>
                 </div>
@@ -131,15 +131,13 @@
             $('#pauseBtn').click(function() {
                 if (isPaused) {
                     $.post('/pause_resume_validation', function() {
-                        $('#pauseBtn').text('Pause').removeClass('btn-success').addClass('btn-warning');
-                        $('#pauseBtn i').removeClass('fa-play').addClass('fa-pause');
+                        $('#pauseBtn').html('Pause Validation <i class="fas fa-pause ms-2"></i>').removeClass('btn-success').addClass('btn-warning');
                         $('#statusText').text('Running');
                         isPaused = false;
                     });
                 } else {
                     $.post('/pause_resume_validation', function() {
-                        $('#pauseBtn').text('Resume').removeClass('btn-warning').addClass('btn-success');
-                        $('#pauseBtn i').removeClass('fa-pause').addClass('fa-play');
+                        $('#pauseBtn').html('Resume Validation <i class="fas fa-play ms-2"></i>').removeClass('btn-warning').addClass('btn-success');
                         $('#statusText').text('Paused');
                         isPaused = true;
                     });
