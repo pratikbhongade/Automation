@@ -9,7 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions as selenium_exceptions
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, JavascriptException
 from email_sender import send_email
 
 app = Flask(__name__)
@@ -25,12 +25,10 @@ log_file_path = os.path.join(os.getcwd(), 'validation.log')
 logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
 validation_status = {'status': 'Not Started', 'results': []}
-control_flags = {'pause': False, 'stop': False}
+stop_validation_flag = False  # Global flag to stop validation
 
 def validate_application(environment):
-    global validation_status
-    global control_flags
-
+    global validation_status, stop_validation_flag
     # Set the URL based on environment
     url = config['environments'].get(environment.upper())
     if not url:
@@ -50,21 +48,16 @@ def validate_application(environment):
         validation_results.append((message, status))
         validation_status['results'].append(message)
 
-    def check_control_flags():
-        while control_flags['pause']:
-            time.sleep(1)
-        if control_flags['stop']:
-            driver.quit()
-            raise Exception("Validation Stopped by User")
-
     # Function to highlight an element
     def highlight(element):
         driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, "background: yellow; border: 2px solid red;")
 
     # Function to check if a tab opens properly
     def check_tab(tab_element, tab_name, content_locator, index):
+        if stop_validation_flag:
+            log_and_update_status("Validation stopped.", "Failed")
+            return False
         try:
-            check_control_flags()
             highlight(tab_element)
             time.sleep(1)  # Wait for 1 second before clicking the tab
             tab_element.click()
@@ -84,8 +77,10 @@ def validate_application(environment):
 
     # Function to check if a sub-tab opens properly by executing JavaScript
     def check_sub_tab(sub_tab_js, sub_tab_name, content_locator, main_index, sub_index):
+        if stop_validation_flag:
+            log_and_update_status("Validation stopped.", "Failed")
+            return False
         try:
-            check_control_flags()
             time.sleep(1)  # Wait for 1 second before clicking the sub-tab
             driver.execute_script(sub_tab_js)  # Execute JavaScript function directly
             locator_type = content_locator['type']
@@ -108,8 +103,10 @@ def validate_application(environment):
 
     # Function to validate the first list element under the specified column and click the cancel button
     def validate_first_list_element_and_cancel(column_index, main_index, sub_index, is_export_control=False):
+        if stop_validation_flag:
+            log_and_update_status("Validation stopped.", "Failed")
+            return False
         try:
-            check_control_flags()
             WebDriverWait(driver, 3).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "table.ListView")))
             rows = driver.find_elements(By.XPATH, f"//table[@class='ListView']/tbody/tr")
             if len(rows) <= 1:  # No data rows
@@ -161,7 +158,6 @@ def validate_application(environment):
         global all_tabs_opened
         sub_tab_results = []
         for sub_index, (sub_tab_name, sub_tab_data) in enumerate(sub_tabs.items(), start=1):
-            check_control_flags()
             sub_success = check_sub_tab(sub_tab_data['script'], sub_tab_name, sub_tab_data['content_locator'], main_index, sub_index)
             is_export_control = tab_name == "Positive Pay" and sub_tab_name == "Export Control"
             if sub_success:
@@ -189,8 +185,10 @@ def validate_application(environment):
 
     # Check main tabs and their respective sub-tabs
     for i, (tab_name, tab_data) in enumerate(config['tabs'].items(), start=1):
+        if stop_validation_flag:
+            log_and_update_status("Validation stopped.", "Failed")
+            break
         try:
-            check_control_flags()
             # Find the main tab element using its href attribute
             tab_element = WebDriverWait(driver, 3).until(
                 EC.element_to_be_clickable((By.XPATH, f"//a[@href='{tab_data['url']}']"))
@@ -222,6 +220,10 @@ def validate_application(environment):
     driver.quit()
 
     # Print completion message if all tabs opened successfully
+    if stop_validation_flag:
+        log_and_update_status("Validation stopped.", "Failed")
+        return validation_results, False
+
     if all_tabs_opened:
         result = ("Validation completed successfully.", "Success")
         log_and_update_status(result[0])
@@ -237,42 +239,29 @@ def home():
 
 @app.route('/start_validation', methods=['POST'])
 def start_validation():
+    global stop_validation_flag
+    stop_validation_flag = False  # Reset the stop flag
     data = request.json
     environment = data.get('environment')
     validation_status['status'] = 'Running'
     validation_status['results'] = []
-    control_flags['pause'] = False
-    control_flags['stop'] = False
 
     def validate_environment():
-        try:
-            results, success = validate_application(environment)
-            validation_status['status'] = 'Completed' if success else 'Failed'
-            validation_status['results'] = results
-            subject = f"{project_name} {environment.upper()} Environment Validation Results"
-            send_email(subject, results, success, log_file_path)
-        except Exception as e:
-            validation_status['status'] = 'Failed'
-            logging.error(f"Validation stopped: {str(e)}")
+        results, success = validate_application(environment)
+        validation_status['status'] = 'Completed' if success else 'Failed'
+        validation_status['results'] = results
+        subject = f"{project_name} {environment.upper()} Environment Validation Results"
+        send_email(subject, results, success, log_file_path)
 
     thread = threading.Thread(target=validate_environment)
     thread.start()
     return jsonify({"message": "Validation started"}), 202
 
-@app.route('/pause_validation', methods=['POST'])
-def pause_validation():
-    control_flags['pause'] = True
-    return jsonify({"message": "Validation paused"}), 200
-
-@app.route('/resume_validation', methods=['POST'])
-def resume_validation():
-    control_flags['pause'] = False
-    return jsonify({"message": "Validation resumed"}), 200
-
 @app.route('/stop_validation', methods=['POST'])
 def stop_validation():
-    control_flags['stop'] = True
-    return jsonify({"message": "Validation stopped"}), 200
+    global stop_validation_flag
+    stop_validation_flag = True  # Set the flag to stop validation
+    return jsonify({"message": "Validation stopping..."})
 
 @app.route('/status')
 def status():
