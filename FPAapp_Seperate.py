@@ -27,6 +27,7 @@ logging.basicConfig(filename=log_file_path, level=logging.INFO, format='%(asctim
 validation_status = {'status': 'Not Started', 'results': []}
 pause_event = threading.Event()
 stop_event = threading.Event()
+validation_thread = None  # This will store the thread object
 
 
 def validate_application(environment):
@@ -65,7 +66,7 @@ def validate_application(environment):
             validation_status['results'].append("Validation stopped by user.")
             validation_status['status'] = 'Stopped'
             raise Exception("Validation stopped by user.")
-        pause_event.wait()
+        pause_event.wait()  # Wait here if paused
 
     # Function to highlight an element
     def highlight(element):
@@ -249,6 +250,11 @@ def home():
 
 @app.route('/start_validation', methods=['POST'])
 def start_validation():
+    global validation_thread
+
+    if validation_thread and validation_thread.is_alive():
+        return jsonify({"message": "Validation is already running"}), 400
+
     data = request.json
     environment = data.get('environment')
     validation_status['status'] = 'Running'
@@ -266,13 +272,16 @@ def start_validation():
         except Exception as e:
             logging.error(str(e))
 
-    thread = threading.Thread(target=validate_environment)
-    thread.start()
+    validation_thread = threading.Thread(target=validate_environment)
+    validation_thread.start()
     return jsonify({"message": "Validation started"}), 202
 
 
 @app.route('/pause_validation', methods=['POST'])
 def pause_validation():
+    if validation_thread and not validation_thread.is_alive():
+        return jsonify({"message": "No validation is currently running"}), 400
+
     if pause_event.is_set():
         pause_event.clear()  # Pause the validation
         return jsonify({"message": "Validation paused"}), 200
@@ -283,6 +292,9 @@ def pause_validation():
 
 @app.route('/stop_validation', methods=['POST'])
 def stop_validation():
+    if validation_thread and not validation_thread.is_alive():
+        return jsonify({"message": "No validation is currently running"}), 400
+
     stop_event.set()  # Stop the validation
     pause_event.set()  # Resume if paused so it can stop
     validation_status['status'] = 'Stopped'
