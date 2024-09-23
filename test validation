@@ -12,18 +12,22 @@ driver = webdriver.Edge()
 
 try:
     # Step 2: Go to the submitted validation portal link
+    print(f"Navigating to the validation portal: {validation_portal}")
     driver.get(validation_portal)
 
     # Step 3: Click on the 'Set Testing Results' button
+    print("Waiting for the 'Set Testing Results' button to be clickable...")
     set_testing_results_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Set Testing Results')]"))
     )
+    print("Clicking the 'Set Testing Results' button...")
     set_testing_results_button.click()
 
     # Wait for the new window to open
     time.sleep(2)
 
     # Step 4: Switch to the new window
+    print("Switching to the new window...")
     WebDriverWait(driver, 20).until(EC.new_window_is_opened(driver.window_handles))
     driver.switch_to.window(driver.window_handles[-1])  # Switch to the last opened window
 
@@ -31,18 +35,28 @@ try:
     new_window_url = driver.current_url
     print(f"New window URL: {new_window_url}")
 
-    # Step 5: Wait for the 'Success' radio button to be present
+    # Step 5: Wait for the 'Success' radio button to be present and visible
+    print("Waiting for the 'Success' radio button to be present and visible...")
     success_radio = WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.XPATH, "//input[@type='radio' and @value='Success']"))
+        EC.visibility_of_element_located((By.XPATH, "//input[@type='radio' and @value='Success']"))
     )
 
-    # Click the radio button
-    success_radio.click()
+    # Scroll into view if necessary
+    driver.execute_script("arguments[0].scrollIntoView();", success_radio)
+
+    # Ensure the radio button is enabled before clicking
+    if success_radio.is_enabled() and success_radio.is_displayed():
+        print("Clicking the 'Success' radio button...")
+        success_radio.click()
+    else:
+        print("The 'Success' radio button is not enabled or displayed.")
 
     # Step 6: Click on the OK button
+    print("Waiting for the OK button to be clickable...")
     ok_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'K')]"))
     )
+    print("Clicking the OK button...")
     ok_button.click()
 
     print("Validation results submitted successfully!")
