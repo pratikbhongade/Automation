@@ -12,35 +12,44 @@ driver = webdriver.Chrome()
 
 try:
     # Step 2: Go to the submitted validation portal link
+    print(f"Navigating to the validation portal: {validation_portal}")
     driver.get(validation_portal)
 
     # Step 3: Click on the 'Set Testing Results' button
+    print("Waiting for the 'Set Testing Results' button to be clickable...")
     set_testing_results_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Set Testing Results')]"))
     )
+    print("Clicking the 'Set Testing Results' button...")
     set_testing_results_button.click()
 
     # Wait for the results page to load
     time.sleep(2)
 
     # Step 4: Select the 'Success' radio button
+    print("Waiting for the 'Success' radio button to be clickable...")
     success_radio = WebDriverWait(driver, 20).until(
-        EC.visibility_of_element_located((By.XPATH, "//input[@type='radio' and @value='Success']"))
+        EC.element_to_be_clickable((By.XPATH, "//input[@type='radio' and @value='Success']"))
     )
     
-    # Ensure the radio button is visible and scroll to it if needed
-    driver.execute_script("arguments[0].scrollIntoView();", success_radio)
-
-    # Click the radio button
+    print("Radio button found. Attempting to click the 'Success' radio button...")
     success_radio.click()
+    print("Successfully clicked the 'Success' radio button.")
 
     # Step 5: Click on the OK button
+    print("Waiting for the OK button to be clickable...")
     ok_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'K')]"))
     )
+    print("Clicking the OK button...")
     ok_button.click()
 
     print("Validation results submitted successfully!")
+
+except Exception as e:
+    print(f"An error occurred: {e}")
+    print("Current page source for debugging:")
+    print(driver.page_source)  # Output the current page source to help identify issues
 
 finally:
     # Close the WebDriver
