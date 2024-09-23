@@ -1,16 +1,22 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
-# Step 1: Ask the user for the validation portal link
-validation_portal = input("Please enter the validation portal link: ")
+# Set up Edge options
+options = webdriver.EdgeOptions()
+options.use_chromium = True  # Ensure it uses Chromium-based Edge
 
 # Initialize the WebDriver for Edge
-driver = webdriver.Edge()
+driver = webdriver.Edge(service=EdgeService(), options=options)
 
 try:
+    # Step 1: Ask the user for the validation portal link
+    validation_portal = input("Please enter the validation portal link: ")
+
     # Step 2: Go to the submitted validation portal link
     print(f"Navigating to the validation portal: {validation_portal}")
     driver.get(validation_portal)
@@ -63,9 +69,6 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")
-    # Print current window handles for debugging
-    print(f"Current window handles: {driver.window_handles}")
-    print(f"Current URL: {driver.current_url}")
 
 finally:
     # Close the WebDriver
