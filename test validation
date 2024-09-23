@@ -27,6 +27,10 @@ try:
     WebDriverWait(driver, 20).until(EC.new_window_is_opened(driver.window_handles))
     driver.switch_to.window(driver.window_handles[-1])  # Switch to the last opened window
 
+    # Print the URL of the new window
+    new_window_url = driver.current_url
+    print(f"New window URL: {new_window_url}")
+
     # Step 5: Select the 'Success' radio button
     success_radio = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//input[@type='radio' and @value='Success']"))
