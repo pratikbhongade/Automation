@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# Setup WebDriver for the first browser
+# Setup WebDriver for the first browser (Edge in this case)
 driver = webdriver.Edge()
 
 # Step 1: Ask for the validation portal link
@@ -24,15 +24,18 @@ try:
 except Exception as e:
     print(f"Error clicking 'Set Testing Results' button: {e}")
 
-# Step 4: Use pyautogui to wait for the new browser to open
-time.sleep(5)  # Adjust as needed for the new browser to open
+# Step 4: Use pyautogui to handle the new browser window
+time.sleep(5)  # Wait for the new browser to fully load
 
-# Step 5: Use pyautogui to click on 'Success' radio button
-# Adjust coordinates as per your screen resolution
-pyautogui.click(x=500, y=500)  # Coordinates of the 'Success' radio button
+# Step 5: Click the 'Success' radio button using its coordinates
+pyautogui.click(x=543, y=360)
 
-# Step 6: Use pyautogui to click 'OK' button
-pyautogui.click(x=700, y=700)  # Coordinates of the 'OK' button
+# Step 6: Click the 'OK' button using its coordinates
+pyautogui.click(x=1398, y=865)
 
-# Close the first browser
+# Step 7: Click the 'Confirmation' button using its coordinates
+time.sleep(2)  # Adjust timing if necessary
+pyautogui.click(x=1068, y=618)
+
+# Close the first browser window
 driver.quit()
