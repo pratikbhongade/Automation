@@ -31,10 +31,12 @@ try:
     new_window_url = driver.current_url
     print(f"New window URL: {new_window_url}")
 
-    # Step 5: Select the 'Success' radio button
+    # Step 5: Wait for the 'Success' radio button to be present
     success_radio = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@type='radio' and @value='Success']"))
+        EC.presence_of_element_located((By.XPATH, "//input[@type='radio' and @value='Success']"))
     )
+
+    # Click the radio button
     success_radio.click()
 
     # Step 6: Click on the OK button
