@@ -1,48 +1,54 @@
-import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import subprocess
 
-# Initialize the first browser instance for the validation portal
-driver1 = webdriver.Edge()
+# Setup WebDriver for the first browser (Assuming Edge)
+driver = webdriver.Edge()
 
-# Step 1: Navigate to the validation portal link
-validation_portal = input("Please enter the validation portal link: ")
-driver1.get(validation_portal)
+# Step 1: Ask for the validation portal link
+portal_link = input("Please enter the validation portal link: ")
 
-# Step 2: Click on the 'Set Testing Results' button
-set_testing_results_button = WebDriverWait(driver1, 20).until(
-    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Set Testing Results')]"))
-)
-set_testing_results_button.click()
+# Step 2: Go to the submitted link
+driver.get(portal_link)
 
-# Pause to wait for the new window to open (in a new browser instance)
-time.sleep(5)  # Adjust based on how long it takes for the new window to open
+# Step 3: Click on 'Set Testing Results' button
+try:
+    # Wait until the 'Set Testing Results' button is clickable
+    set_results_button = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[@onclick='SetTestingResults()']"))
+    )
+    set_results_button.click()
+except Exception as e:
+    print(f"Error clicking 'Set Testing Results' button: {e}")
 
-# Step 3: Open the new browser instance (assuming the URL is known or accessible)
-# You can retrieve the URL from some application log or get it programmatically if possible
-new_window_url = "https://example.com/new-window-url"  # Replace with the actual URL
+# Step 4: Hard-code the URL of the new browser that will be opened
+new_url = "http://your-hardcoded-url.com/validation-page"
 
-# Step 4: Automate the new window in a new browser instance
-driver2 = webdriver.Edge()
-driver2.get(new_window_url)
+# Step 5: Start a new WebDriver session for the new browser
+new_browser_driver = webdriver.Edge()
 
-# Step 5: Wait for the 'Success' radio button in the new window
-success_radio = WebDriverWait(driver2, 20).until(
-    EC.visibility_of_element_located((By.XPATH, "//input[@type='radio' and @value='Success']"))
-)
-success_radio.click()
+# Step 6: Navigate to the hardcoded URL
+new_browser_driver.get(new_url)
 
-# Step 6: Click the OK button
-ok_button = WebDriverWait(driver2, 20).until(
-    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'K')]"))
-)
-ok_button.click()
+# Step 7: Select the 'Success' radio button in the new browser
+try:
+    success_radio = WebDriverWait(new_browser_driver, 10).until(
+        EC.element_to_be_clickable((By.ID, "TestingResults"))
+    )
+    success_radio.click()
+except Exception as e:
+    print(f"Error selecting 'Success' radio button: {e}")
 
-# Close the second window after completion
-driver2.quit()
+# Step 8: Click the 'OK' button in the new browser
+try:
+    ok_button = WebDriverWait(new_browser_driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[@onclick='OK()']"))
+    )
+    ok_button.click()
+except Exception as e:
+    print(f"Error clicking OK button: {e}")
 
-# Close the first browser instance
-driver1.quit()
+# Close both browsers
+driver.quit()
+new_browser_driver.quit()
