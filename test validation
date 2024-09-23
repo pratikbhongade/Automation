@@ -8,14 +8,14 @@ import time
 validation_portal = input("Please enter the validation portal link: ")
 
 # Initialize the WebDriver
-driver = webdriver.Chrome()  # Change to Firefox() or another browser if needed
+driver = webdriver.Chrome()
 
 try:
     # Step 2: Go to the submitted validation portal link
     driver.get(validation_portal)
 
     # Step 3: Click on the 'Set Testing Results' button
-    set_testing_results_button = WebDriverWait(driver, 10).until(
+    set_testing_results_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Set Testing Results')]"))
     )
     set_testing_results_button.click()
@@ -24,13 +24,18 @@ try:
     time.sleep(2)
 
     # Step 4: Select the 'Success' radio button
-    success_radio = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@id='TestingResults' and @value='Success']"))
+    success_radio = WebDriverWait(driver, 20).until(
+        EC.visibility_of_element_located((By.XPATH, "//input[@type='radio' and @value='Success']"))
     )
+    
+    # Ensure the radio button is visible and scroll to it if needed
+    driver.execute_script("arguments[0].scrollIntoView();", success_radio)
+
+    # Click the radio button
     success_radio.click()
 
     # Step 5: Click on the OK button
-    ok_button = WebDriverWait(driver, 10).until(
+    ok_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'K')]"))
     )
     ok_button.click()
@@ -39,5 +44,5 @@ try:
 
 finally:
     # Close the WebDriver
-    time.sleep(2)  # Wait before closing to see the results
+    time.sleep(2)
     driver.quit()
