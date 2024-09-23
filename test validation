@@ -27,7 +27,7 @@ try:
     time.sleep(2)
 
     # Step 4: Switch to the new window
-    print("Switching to the new window...")
+    print("Waiting for the new window to open...")
     WebDriverWait(driver, 20).until(EC.new_window_is_opened(driver.window_handles))
     driver.switch_to.window(driver.window_handles[-1])  # Switch to the last opened window
 
@@ -63,6 +63,9 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")
+    # Print current window handles for debugging
+    print(f"Current window handles: {driver.window_handles}")
+    print(f"Current URL: {driver.current_url}")
 
 finally:
     # Close the WebDriver
