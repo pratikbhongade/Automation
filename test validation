@@ -49,6 +49,14 @@ try:
 except Exception as e:
     print(f"Error clicking OK button: {e}")
 
+# Step 9: Handle the confirmation dialog (JavaScript confirmation)
+try:
+    # Wait for the confirmation alert to appear and accept it
+    confirmation = WebDriverWait(new_browser_driver, 10).until(EC.alert_is_present())
+    confirmation.accept()  # Click 'OK' on the confirmation dialog
+except Exception as e:
+    print(f"Error handling confirmation dialog: {e}")
+
 # Close both browsers
 driver.quit()
 new_browser_driver.quit()
