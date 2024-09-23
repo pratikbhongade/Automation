@@ -1,0 +1,35 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
+
+# Step 1: Ask the user for the validation portal link
+validation_portal = input("Please enter the validation portal link: ")
+
+# Initialize the WebDriver (make sure to have the correct driver for your browser)
+driver = webdriver.Chrome()  # You can use Firefox(), Edge(), etc. as needed
+
+try:
+    # Step 2: Go to the submitted validation portal link
+    driver.get(validation_portal)
+
+    # Step 3: Click on the 'Set Testing Results' button
+    set_testing_results_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Set Testing Results')]")
+    set_testing_results_button.click()
+
+    time.sleep(2)  # Wait for the results page to load (adjust as necessary)
+
+    # Step 4: Select the 'Success' radio button
+    success_radio = driver.find_element(By.XPATH, "//input[@type='radio' and @value='Success']")
+    success_radio.click()
+
+    # Step 5: Click on the OK button
+    ok_button = driver.find_element(By.XPATH, "//button[contains(text(), 'K')]")
+    ok_button.click()
+
+    print("Validation results submitted successfully!")
+
+finally:
+    # Close the WebDriver
+    time.sleep(2)  # Wait before closing to see the results
+    driver.quit()
