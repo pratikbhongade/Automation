@@ -1,41 +1,45 @@
-import pyautogui
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import pyautogui
 
-# Setup WebDriver for the first browser (Edge in this case)
-driver = webdriver.Edge()
+# Ask the user for the validation portal link
+validation_portal_link = input("Please enter the validation portal link: ")
 
-# Step 1: Ask for the validation portal link
-portal_link = input("Please enter the validation portal link: ")
+# Initialize the Selenium WebDriver (Edge/Chrome)
+driver = webdriver.Edge()  # or webdriver.Chrome(), depending on your setup
 
-# Step 2: Go to the submitted link
-driver.get(portal_link)
+# Step 2: Navigate to the provided link
+driver.get(validation_portal_link)
 
-# Step 3: Click on 'Set Testing Results' button
+# Step 3: Find the 'Set Testing Results' button and click it
 try:
-    # Wait until the 'Set Testing Results' button is clickable
-    set_results_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//button[@onclick='SetTestingResults()']"))
-    )
-    set_results_button.click()
+    set_testing_results_button = driver.find_element(By.XPATH, "//button[@type='Button' and contains(text(),'Set Testing Results')]")
+    set_testing_results_button.click()
+    print("Set Testing Results button clicked.")
 except Exception as e:
-    print(f"Error clicking 'Set Testing Results' button: {e}")
+    print(f"Error clicking Set Testing Results button: {e}")
+    driver.quit()
 
-# Step 4: Use pyautogui to handle the new browser window
-time.sleep(5)  # Wait for the new browser to fully load
+# Pause to allow new window to load
+time.sleep(5)  # Adjust based on loading time
 
-# Step 5: Click the 'Success' radio button using its coordinates
-pyautogui.click(x=543, y=360)
+# Step 4-6: Use PyAutoGUI to select the Success radio button and click OK
+try:
+    # Click the Success radio button
+    pyautogui.click(543, 360)
+    time.sleep(1)
 
-# Step 6: Click the 'OK' button using its coordinates
-pyautogui.click(x=1398, y=865)
+    # Click the first OK button
+    pyautogui.click(1398, 865)
+    time.sleep(1)
 
-# Step 7: Click the 'Confirmation' button using its coordinates
-time.sleep(2)  # Adjust timing if necessary
-pyautogui.click(x=1068, y=618)
+    # Click the confirmation OK button
+    pyautogui.click(1068, 618)
 
-# Close the first browser window
+    print("Test results successfully submitted!")
+except Exception as e:
+    print(f"Error using PyAutoGUI: {e}")
+
+# Close the browser
 driver.quit()
