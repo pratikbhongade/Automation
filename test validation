@@ -7,8 +7,8 @@ import time
 # Step 1: Ask the user for the validation portal link
 validation_portal = input("Please enter the validation portal link: ")
 
-# Initialize the WebDriver
-driver = webdriver.Chrome()
+# Initialize the WebDriver for Edge
+driver = webdriver.Edge()
 
 try:
     # Step 2: Go to the submitted validation portal link
